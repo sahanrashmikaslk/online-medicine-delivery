@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-medsdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-medsdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build: ./gateway
+    env_file: 
+      - .env
+      - gateway/.env
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  auth:
+    build: ./services/auth
+    env_file:
+      - .env
+      - services/auth/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  catalog:
+    build: ./services/catalog
+    env_file:
+      - .env
+      - services/catalog/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  order:
+    build: ./services/order
+    env_file:
+      - .env
+      - services/order/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  delivery:
+    build: ./services/delivery
+    env_file:
+      - .env
+      - services/delivery/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification:
+    build: ./services/notification
+    env_file:
+      - .env
+      - services/notification/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    env_file:
+      - .env
+      - web/.env
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    depends_on:
+      - gateway
+
+volumes:
+  pgdata:

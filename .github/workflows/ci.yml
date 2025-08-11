@@ -1,0 +1,17 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci --prefix gateway
+      - run: npm ci --prefix services/auth
+      - run: npm ci --prefix services/catalog
+      - run: npm ci --prefix services/order
+      - run: npm ci --prefix services/delivery
+      - run: npm ci --prefix services/notification
+      - run: npm ci --prefix web
+      - run: npm run build --prefix web
