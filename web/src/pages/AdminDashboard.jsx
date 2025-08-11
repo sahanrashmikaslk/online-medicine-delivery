@@ -9,6 +9,15 @@ export default function AdminDashboard({ token }){
   const [form, setForm] = useState({ name:'', description:'', price:'', stock:'' })
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
+  const [msgType, setMsgType] = useState('success') // 'success' or 'error'
+
+  // Auto-clear messages after 5 seconds
+  useEffect(() => {
+    if (msg) {
+      const timer = setTimeout(() => setMsg(''), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [msg])
 
   async function loadMeds(){
     const r = await api('/catalog/medicines')
@@ -24,6 +33,7 @@ export default function AdminDashboard({ token }){
   async function createMed(e){
     e.preventDefault()
     setLoading(true)
+    setMsg('') // Clear previous messages
     try{
       const payload = { 
         name: form.name.trim(),
@@ -31,11 +41,36 @@ export default function AdminDashboard({ token }){
         price: Number(form.price),
         stock: Number(form.stock)
       }
+      
+      // Client-side validation for better UX
+      if (!payload.name || payload.name.length < 2) {
+        setMsg('Medicine name must be at least 2 characters long')
+        setMsgType('error')
+        setLoading(false)
+        return
+      }
+      if (payload.price <= 0) {
+        setMsg('Price must be greater than 0')
+        setMsgType('error')
+        setLoading(false)
+        return
+      }
+      if (payload.stock < 0) {
+        setMsg('Stock cannot be negative')
+        setMsgType('error')
+        setLoading(false)
+        return
+      }
+      
       await api('/catalog/medicines','POST', payload, token)
       setForm({name:'',description:'',price:'',stock:''})
-      setMsg('Medicine created')
+      setMsg('Medicine created successfully!')
+      setMsgType('success')
       await loadMeds()
-    }catch(err){ setMsg('Create failed: ' + err.message) }
+    }catch(err){ 
+      setMsg(err.message)
+      setMsgType('error')
+    }
     setLoading(false)
   }
 
@@ -46,14 +81,39 @@ export default function AdminDashboard({ token }){
   }
 
   async function updateDelivery(orderId, status){
-    await api(`/delivery/${orderId}`,'PATCH',{ status }, token)
-    setMsg(`Order ${orderId} -> ${status}`)
+    try {
+      await api(`/delivery/${orderId}`,'PATCH',{ status }, token)
+      setMsg(`Order ${orderId} status updated to ${status}`)
+      setMsgType('success')
+    } catch(err) {
+      setMsg(`Failed to update delivery: ${err.message}`)
+      setMsgType('error')
+    }
   }
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-8">
       <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-      {msg && <div className="p-2 bg-green-100 border border-green-300 rounded">{msg}</div>}
+      {msg && (
+        <div className={`p-3 rounded-lg border ${
+          msgType === 'error' 
+            ? 'bg-red-50 border-red-200 text-red-800' 
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-center">
+            {msgType === 'error' ? (
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {msg}
+          </div>
+        </div>
+      )}
 
       {/* Medicines */}
       <section className="bg-white rounded-xl border p-4 shadow">
