@@ -746,6 +746,8 @@ docker compose exec gateway ping auth
 ```bash
 # Check RabbitMQ management UI
 open http://localhost:15672
+username - guest
+passwordguest
 
 # View queue status
 docker compose exec rabbitmq rabbitmqctl list_queues
