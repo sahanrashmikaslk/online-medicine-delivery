@@ -43,6 +43,7 @@ This is the **Azure deployment branch** for the Online Medicine Delivery System.
 ### 🔑 Login Credentials
 
 **Admin Credentials**:
+
 - **📧 Email**: `admin@meds.com`
 - **🔒 Password**: `Admin@123`
 
@@ -50,7 +51,7 @@ This is the **Azure deployment branch** for the Online Medicine Delivery System.
 
 ### Prerequisites
 
-- **Azure VM** with Ubuntu 20.04+ 
+- **Azure VM** with Ubuntu 20.04+
 - **Docker** & **Docker Compose** installed
 - **Git** for repository management
 - **4GB+ RAM** and **20GB+ Storage**
@@ -117,24 +118,24 @@ Internet
 
 ### 🌐 External Ports (Azure VM)
 
-| Service | Internal Port | External Port | Description |
-|---------|---------------|---------------|-------------|
-| **Web Frontend** | 5173 | 3000 | React Application |
-| **API Gateway** | 8080 | 8080 | API Gateway & Authentication |
-| **PostgreSQL** | 5432 | 5432 | Primary Database |
-| **Redis** | 6379 | 6379 | Caching Layer |
-| **RabbitMQ** | 5672 | 5672 | Message Broker |
-| **RabbitMQ Management** | 15672 | 15672 | Management UI |
+| Service                 | Internal Port | External Port | Description                  |
+| ----------------------- | ------------- | ------------- | ---------------------------- |
+| **Web Frontend**        | 5173          | 3000          | React Application            |
+| **API Gateway**         | 8080          | 8080          | API Gateway & Authentication |
+| **PostgreSQL**          | 5432          | 5432          | Primary Database             |
+| **Redis**               | 6379          | 6379          | Caching Layer                |
+| **RabbitMQ**            | 5672          | 5672          | Message Broker               |
+| **RabbitMQ Management** | 15672         | 15672         | Management UI                |
 
 ### 🔐 Internal Services (Docker Network)
 
-| Service | Port | Description | Dependencies |
-|---------|------|-------------|--------------|
-| **Auth Service** | 3001 | User Authentication | PostgreSQL |
-| **Catalog Service** | 3002 | Medicine Catalog | PostgreSQL, Redis |
-| **Order Service** | 3003 | Order Management | PostgreSQL, RabbitMQ |
-| **Delivery Service** | 3004 | Delivery Tracking | PostgreSQL, RabbitMQ |
-| **Notification Service** | 3005 | Email/SMS Notifications | RabbitMQ |
+| Service                  | Port | Description             | Dependencies         |
+| ------------------------ | ---- | ----------------------- | -------------------- |
+| **Auth Service**         | 3001 | User Authentication     | PostgreSQL           |
+| **Catalog Service**      | 3002 | Medicine Catalog        | PostgreSQL, Redis    |
+| **Order Service**        | 3003 | Order Management        | PostgreSQL, RabbitMQ |
+| **Delivery Service**     | 3004 | Delivery Tracking       | PostgreSQL, RabbitMQ |
+| **Notification Service** | 3005 | Email/SMS Notifications | RabbitMQ             |
 
 ## 🔧 Environment Configuration
 
@@ -510,4 +511,3 @@ docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres meds
 _Access your application at: [http://20.106.187.119:3000](http://20.106.187.119:3000)_
 
 **For support**: Check logs first → `docker-compose -f docker-compose.prod.yml logs`
-
