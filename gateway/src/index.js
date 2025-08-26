@@ -10,8 +10,19 @@ const app = express();
 
 // IMPORTANT: Do NOT parse JSON bodies in the gateway.
 // It should just forward bodies to services.
-app.use(helmet());
-app.use(cors({ origin: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean) || true }));
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for Azure deployment
+}));
+
+// Configure CORS for Azure deployment
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
