@@ -530,39 +530,13 @@ For deployment issues:
 
 ---
 
+<div align="center">
 **Production Ready Azure Deployment**
 
-Access your application at: http://20.106.187.119:3000
+_Access your application at: http://20.106.187.119:3000_
 git clone https://github.com/sahanrashmikaslk/online-medicine-delivery.git
 cd online-medicine-delivery
 git checkout azure-deployment
 
-# Run deployment script
-
-chmod +x deploy-azure.sh
-./deploy-azure.sh
-
-````
-
-### 🔧 Manual Deployment
-
-```bash
-# 1. Set up environment
-cp .env.production .env
-
-# 2. Build and deploy
-docker-compose -f docker-compose.prod.yml up --build -d
-
-# 3. Verify deployment
-docker-compose -f docker-compose.prod.yml ps
-````
-
-
-
-<div align="center">
-
-
-
-_Access your application at: [http://20.106.187.119:3000](http://20.106.187.119:3000)_
 
 **For support**: Check logs first → `docker-compose -f docker-compose.prod.yml logs`
