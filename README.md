@@ -1,6 +1,18 @@
 # Online Medicine Delivery System - Azure Deployment
 
-**Production-ready microservices application deployed on Azure Virtual Machine**
+<div align="center">
+
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![Azure](https://img.shields.io/badge/microsoft%20azure-0089D0?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+
+_Production Deployment on Azure VM_
+
+</div>
 
 ## Overview
 
@@ -9,7 +21,7 @@ This is the Azure deployment branch for the Online Medicine Delivery System, spe
 ## Live Application
 
 - **Frontend**: http://20.106.187.119:3000
-- **API Gateway**: http://20.106.187.119:8080  
+- **API Gateway**: http://20.106.187.119:8080
 - **RabbitMQ Management**: http://20.106.187.119:15672
 
 ### Admin Credentials
@@ -20,11 +32,13 @@ This is the Azure deployment branch for the Online Medicine Delivery System, spe
 ## Technology Stack
 
 ### Frontend
+
 - React 18 with Vite build system
 - Tailwind CSS for styling
 - Modern ES6+ JavaScript
 
 ### Backend Services
+
 - Node.js with Express.js framework
 - JSON Web Tokens (JWT) for authentication
 - bcrypt for password hashing
@@ -32,6 +46,7 @@ This is the Azure deployment branch for the Online Medicine Delivery System, spe
 - CORS for cross-origin resource sharing
 
 ### Infrastructure
+
 - PostgreSQL 15 - Primary database
 - Redis 7 - Caching layer
 - RabbitMQ 3 - Message broker
@@ -40,57 +55,101 @@ This is the Azure deployment branch for the Online Medicine Delivery System, spe
 
 ## Architecture
 
-```
+````
 Internet → Azure VM (20.106.187.119)
     ↓
-┌─────────────────────────────────────────────────────────┐
-│                  Docker Network                         │
-│                                                         │
-│  ┌─────────────┐    ┌──────────────┐                   │
-│  │ React Web   │◄──►│ API Gateway  │                   │
-│  │ Port: 3000  │    │ Port: 8080   │                   │
-│  └─────────────┘    └──────┬───────┘                   │
-│                            │                           │
-│    ┌───────────────────────┼───────────────────────┐   │
-│    │                       │                       │   │
-│ ┌──▼──┐ ┌─────┐ ┌──────┐ ┌────────┐ ┌─────────────┐   │
-│ │Auth │ │Cat. │ │Order │ │Delivery│ │Notification │   │
-│ │3001 │ │3002 │ │3003  │ │3004    │ │3005         │   │
-│ └─┬───┘ └─┬───┘ └┬─────┘ └┬───────┘ └┬────────────┘   │
-│   │       │      │        │          │                │
-│   └───────┼──────┼────────┼──────────┘                │
-│           │      │        │                           │
-│  ┌────────▼┐ ┌───▼────┐ ┌─▼────────┐                  │
-│  │PostgreSQL│ │ Redis  │ │RabbitMQ  │                  │
-│  │Port:5432 │ │Port:6379│ │Port:5672 │                  │
-│  └─────────┘ └────────┘ └──────────┘                  │
-└─────────────────────────────────────────────────────────┘
-```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              DOCKER NETWORK                                   │
+│                                                                               │
+│  ┌─────────────────┐                      ┌─────────────────┐                 │
+│  │   React Web     │◄──── HTTP/HTTPS ────►│  API Gateway    │                 │
+│  │   Frontend      │                      │  (Express.js)   │                 │
+│  │   Port: 3000    │                      │   Port: 8080    │                 │
+│  │                 │                      │                 │                 │
+│  │ • User Interface│                      │ • Authentication│                 │
+│  │ • Vite Dev      │                      │ • Route Proxy   │                 │
+│  │ • Tailwind CSS  │                      │ • CORS Handling │                 │
+│  └─────────────────┘                      └─────────┬───────┘                 │
+│                                                     │                         │
+│                               ┌─────────────────────┼─────────────────────┐   │
+│                               │                     │                     │   │
+│                               ▼                     ▼                     ▼   │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
+│  │Auth Service │    │Cat. Service │    │Order Service│    │Delivery Srv │     │
+│  │Port: 3001   │    │Port: 3002   │    │Port: 3003   │    │Port: 3004   │     │
+│  │             │    │             │    │             │    │             │     │
+│  │• JWT Auth   │    │• Medicine   │    │• Order Mgmt │    │• Track Deliv│     │
+│  │• User Mgmt  │    │• Inventory  │    │• Cart Logic │    │• Status Upd │     │
+│  │• Login/Reg  │    │• Search API │    │• Payment    │    │• Logistics  │     │
+│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘     │
+│         │                  │                  │                  │            │
+│         │                  │                  │                  │            │
+│         ▼                  ▼                  ▼                  ▼            │
+│  ┌─────────────────────────┬──────────────────┬──────────────────┐            │
+│  │                         │                  │                  │            │
+│  ▼                         ▼                  ▼                  ▼            │
+│┌──────────────┐     ┌──────────────┐  ┌──────────────┐  ┌─────────────┐       │
+││ PostgreSQL   │     │   Redis      │  │  RabbitMQ    │  │Notification │       │
+││ Database     │     │   Cache      │  │ Message Que  │  │Service      │       │
+││Port: 5432    │     │Port: 6379    │  │Port: 5672    │  │Port: 3005   │       │
+││              │     │              │  │              │  │             │       │
+││• User Data   │     │• Session Mgmt│  │• Event Bus   │  │• Email/SMS  │       │
+││• Medicine Cat│     │• Fast Lookup │  │• Async Comm  │  │• Push Notif │       │
+││• Orders      │     │• Performance │  │• Order Events│  │• Real-time  │       │
+││• Delivery    │     │• Cache Layer │  │• Delivery Evt│  │  Updates    │       │
+│└──────────────┘     └──────────────┘  └──────────────┘  └─────────────┘       │
+│                                                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+### Data Flow Overview
+
+USER REQUEST FLOW:
+┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  User   │───►│   React     │───►│ API Gateway │───►│  Services   │
+│Browser  │    │  Frontend   │    │   (8080)    │    │(Auth/Cat/   │
+│         │    │   (3000)    │    │             │    │ Ord/Del)    │
+└─────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                      │                                     │
+                      │            ┌─────────────┐          │
+                      └───────►───►│ PostgreSQL  │◄─────────┘
+                                   │  Database   │
+                                   │   (5432)    │
+                                   └─────────────┘
+
+EVENT-DRIVEN COMMUNICATION:
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│Order Service│───►│  RabbitMQ   │───►│Delivery Srv │───►│Notification │
+│  (Place)    │    │ Message Bus │    │ (Process)   │    │Service      │
+│             │    │   (5672)    │    │             │    │(Notify User)│
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 
 ## Service Configuration
 
 ### External Ports (Azure VM)
-| Service | Internal Port | External Port | Description |
-|---------|---------------|---------------|-------------|
-| Web Frontend | 5173 | 3000 | React Application |
-| API Gateway | 8080 | 8080 | API Gateway & Auth |
-| PostgreSQL | 5432 | 5432 | Primary Database |
-| Redis | 6379 | 6379 | Cache Layer |
-| RabbitMQ | 5672 | 5672 | Message Broker |
-| RabbitMQ Management | 15672 | 15672 | Management UI |
+
+| Service             | Internal Port | External Port | Description        |
+| ------------------- | ------------- | ------------- | ------------------ |
+| Web Frontend        | 5173          | 3000          | React Application  |
+| API Gateway         | 8080          | 8080          | API Gateway & Auth |
+| PostgreSQL          | 5432          | 5432          | Primary Database   |
+| Redis               | 6379          | 6379          | Cache Layer        |
+| RabbitMQ            | 5672          | 5672          | Message Broker     |
+| RabbitMQ Management | 15672         | 15672         | Management UI      |
 
 ### Internal Services (Docker Network)
-| Service | Port | Description | Dependencies |
-|---------|------|-------------|--------------|
-| Auth Service | 3001 | User Authentication | PostgreSQL |
-| Catalog Service | 3002 | Medicine Catalog | PostgreSQL, Redis |
-| Order Service | 3003 | Order Management | PostgreSQL, RabbitMQ |
-| Delivery Service | 3004 | Delivery Tracking | PostgreSQL, RabbitMQ |
-| Notification Service | 3005 | Notifications | RabbitMQ |
+
+| Service              | Port | Description         | Dependencies         |
+| -------------------- | ---- | ------------------- | -------------------- |
+| Auth Service         | 3001 | User Authentication | PostgreSQL           |
+| Catalog Service      | 3002 | Medicine Catalog    | PostgreSQL, Redis    |
+| Order Service        | 3003 | Order Management    | PostgreSQL, RabbitMQ |
+| Delivery Service     | 3004 | Delivery Tracking   | PostgreSQL, RabbitMQ |
+| Notification Service | 3005 | Notifications       | RabbitMQ             |
 
 ## Quick Deployment
 
 ### Prerequisites
+
 - Azure VM with Ubuntu 20.04+
 - Docker & Docker Compose installed
 - Git for repository management
@@ -98,15 +157,17 @@ Internet → Azure VM (20.106.187.119)
 - Open ports: 3000, 8080, 5432, 6379, 5672, 15672
 
 ### One-Click Deployment
+
 ```bash
 # Clone and deploy
 git clone -b azure-deployment https://github.com/sahanrashmikaslk/online-medicine-delivery.git
 cd online-medicine-delivery
 chmod +x deploy-azure.sh
 ./deploy-azure.sh
-```
+````
 
 ### Manual Deployment
+
 ```bash
 # Start all services
 docker-compose -f docker-compose.prod.yml up --build -d
@@ -121,6 +182,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ## Environment Configuration
 
 ### Main Environment (.env)
+
 ```bash
 COMPOSE_PROJECT_NAME=meds-prod
 JWT_SECRET=supersecretjwt
@@ -135,11 +197,13 @@ WEB_PORT=3000
 ```
 
 ### Frontend Configuration (web/.env)
+
 ```bash
 VITE_API_BASE=http://20.106.187.119:8080
 ```
 
 ### Gateway Configuration (gateway/.env)
+
 ```bash
 PORT=8080
 JWT_SECRET=supersecretjwt
@@ -149,6 +213,7 @@ ALLOWED_ORIGINS=http://20.106.187.119:3000,http://20.106.187.119:8080
 ## API Testing
 
 ### Authentication
+
 ```bash
 # Register new user
 curl -X POST http://20.106.187.119:8080/auth/register \
@@ -162,6 +227,7 @@ curl -X POST http://20.106.187.119:8080/auth/login \
 ```
 
 ### Medicine Catalog
+
 ```bash
 # Get all medicines
 curl http://20.106.187.119:8080/catalog/medicines
@@ -171,6 +237,7 @@ curl "http://20.106.187.119:8080/catalog/medicines?search=aspirin"
 ```
 
 ### Order Management
+
 ```bash
 # Create order (requires auth token)
 curl -X POST http://20.106.187.119:8080/orders \
@@ -182,6 +249,7 @@ curl -X POST http://20.106.187.119:8080/orders \
 ## Database Management
 
 ### PostgreSQL Access
+
 ```bash
 # Connect via Docker
 docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d medsdb
@@ -191,6 +259,7 @@ psql -h 20.106.187.119 -p 5432 -U postgres -d medsdb
 ```
 
 ### Sample Queries
+
 ```sql
 -- View all users
 SELECT id, email, role, created_at FROM users;
@@ -206,6 +275,7 @@ ORDER BY o.created_at DESC LIMIT 10;
 ```
 
 ### Backup and Restore
+
 ```bash
 # Backup database
 docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres medsdb > backup.sql
@@ -217,6 +287,7 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres meds
 ## Monitoring and Logs
 
 ### Health Checks
+
 ```bash
 # Check service health
 curl http://20.106.187.119:8080/auth/health
@@ -230,6 +301,7 @@ docker-compose -f docker-compose.prod.yml exec redis redis-cli ping
 ```
 
 ### Log Management
+
 ```bash
 # View all logs
 docker-compose -f docker-compose.prod.yml logs --tail=100
@@ -248,6 +320,7 @@ docker-compose -f docker-compose.prod.yml logs -f --tail=20
 ### Common Issues
 
 #### 1. "Failed to fetch" Errors
+
 ```bash
 # Check CORS configuration
 docker-compose -f docker-compose.prod.yml logs gateway | grep -i cors
@@ -260,6 +333,7 @@ curl -I http://20.106.187.119:8080/catalog/medicines
 ```
 
 #### 2. Database Connection Issues
+
 ```bash
 # Check PostgreSQL status
 docker-compose -f docker-compose.prod.yml ps postgres
@@ -272,6 +346,7 @@ docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U postgres
 ```
 
 #### 3. Service Startup Problems
+
 ```bash
 # Check all services
 docker-compose -f docker-compose.prod.yml ps
@@ -285,6 +360,7 @@ docker-compose -f docker-compose.prod.yml restart gateway web
 ```
 
 ### Quick Fixes
+
 ```bash
 # Restart specific service
 docker-compose -f docker-compose.prod.yml restart gateway
@@ -311,6 +387,7 @@ docker-compose -f docker-compose.prod.yml up --build -d
 ## Performance Optimization
 
 ### Scaling Options
+
 ```bash
 # Horizontal scaling
 docker-compose -f docker-compose.prod.yml up --scale catalog=2 --scale order=2 -d
@@ -325,12 +402,14 @@ docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.Net
 ## Maintenance
 
 ### Regular Tasks
+
 - **Daily**: Check service health and logs
 - **Weekly**: Database backup and cleanup
 - **Monthly**: Security updates and performance review
 - **Quarterly**: Full system backup and disaster recovery testing
 
 ### Emergency Procedures
+
 ```bash
 # Emergency stop
 docker-compose -f docker-compose.prod.yml down
@@ -405,6 +484,7 @@ online-medicine-delivery/
 ## Features
 
 ### Customer Features
+
 - User registration and authentication
 - Medicine search and filtering
 - Shopping cart management
@@ -413,6 +493,7 @@ online-medicine-delivery/
 - Real-time order status updates
 
 ### Admin Features
+
 - Admin dashboard with analytics
 - Medicine inventory management (CRUD operations)
 - Order management with status updates
@@ -421,6 +502,7 @@ online-medicine-delivery/
 - User management
 
 ### System Features
+
 - High performance with Redis caching
 - Event-driven architecture for loose coupling
 - Horizontal scalability
@@ -439,6 +521,7 @@ online-medicine-delivery/
 ## Support
 
 For deployment issues:
+
 1. Check service logs: `docker-compose -f docker-compose.prod.yml logs`
 2. Verify service status: `docker-compose -f docker-compose.prod.yml ps`
 3. Test health endpoints: `curl http://20.106.187.119:8080/auth/health`
@@ -454,9 +537,11 @@ cd online-medicine-delivery
 git checkout azure-deployment
 
 # Run deployment script
+
 chmod +x deploy-azure.sh
 ./deploy-azure.sh
-```
+
+````
 
 ### 🔧 Manual Deployment
 
@@ -469,7 +554,7 @@ docker-compose -f docker-compose.prod.yml up --build -d
 
 # 3. Verify deployment
 docker-compose -f docker-compose.prod.yml ps
-```
+````
 
 ## 🏗️ Architecture
 
