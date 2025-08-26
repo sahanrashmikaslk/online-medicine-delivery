@@ -10,8 +10,16 @@ const app = express();
 
 // IMPORTANT: Do NOT parse JSON bodies in the gateway.
 // It should just forward bodies to services.
-app.use(helmet());
-app.use(cors({ origin: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean) || true }));
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for development
+  crossOriginEmbedderPolicy: false
+}));
+app.use(cors({ 
+  origin: process.env.ALLOWED_ORIGINS ? 
+    process.env.ALLOWED_ORIGINS.split(',').filter(Boolean) : 
+    ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  credentials: true
+}));
 app.use(rateLimit({ windowMs: 60 * 1000, max: 120 }));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme';
