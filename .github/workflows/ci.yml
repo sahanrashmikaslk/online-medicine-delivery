@@ -7,29 +7,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      
+
       # Install dependencies for all services
       - name: Install Gateway Dependencies
         run: npm ci --prefix gateway
-      
+
       - name: Install Auth Service Dependencies
         run: npm ci --prefix services/auth
-      
+
       - name: Install Catalog Service Dependencies
         run: npm ci --prefix services/catalog
-      
+
       - name: Install Order Service Dependencies
         run: npm ci --prefix services/order
-      
+
       - name: Install Delivery Service Dependencies
         run: npm ci --prefix services/delivery
-      
+
       - name: Install Notification Service Dependencies
         run: npm ci --prefix services/notification
-      
+
       - name: Install Web Dependencies
         run: npm ci --prefix web
-      
+
       # Build web application
       - name: Build Web Application
         run: npm run build --prefix web

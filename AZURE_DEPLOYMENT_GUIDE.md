@@ -41,3 +41,5 @@ chmod +x deploy-azure.sh
 # Frontend: http://20.106.187.119:3000
 
 # API: http://20.106.187.119:8080
+
+# RabbitMQ Management: http://20.106.187.119:15672
