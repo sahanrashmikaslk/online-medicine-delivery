@@ -590,7 +590,7 @@ Internet
 ## 🛠️ Service Configuration
 
 ### 🌐 External Ports (Azure VM)
-
+```
 | Service                 | Internal Port | External Port | Description                  |
 | ----------------------- | ------------- | ------------- | ---------------------------- |
 | **Web Frontend**        | 5173          | 3000          | React Application            |
@@ -599,9 +599,9 @@ Internet
 | **Redis**               | 6379          | 6379          | Caching Layer                |
 | **RabbitMQ**            | 5672          | 5672          | Message Broker               |
 | **RabbitMQ Management** | 15672         | 15672         | Management UI                |
-
+```
 ### 🔐 Internal Services (Docker Network)
-
+```
 | Service                  | Port | Description             | Dependencies         |
 | ------------------------ | ---- | ----------------------- | -------------------- |
 | **Auth Service**         | 3001 | User Authentication     | PostgreSQL           |
@@ -609,7 +609,7 @@ Internet
 | **Order Service**        | 3003 | Order Management        | PostgreSQL, RabbitMQ |
 | **Delivery Service**     | 3004 | Delivery Tracking       | PostgreSQL, RabbitMQ |
 | **Notification Service** | 3005 | Email/SMS Notifications | RabbitMQ             |
-
+```
 ## 🔧 Environment Configuration
 
 ### 📁 Main Environment (.env)
