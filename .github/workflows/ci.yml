@@ -1,4 +1,4 @@
-name: ci
+name: Local Development CI
 on: [push, pull_request]
 jobs:
   build:
@@ -30,8 +30,21 @@ jobs:
       - name: Install Web Dependencies
         run: npm install --prefix web
 
-      # Build web application
+      # Build web application for local development
       - name: Build Web Application
         run: npm run build --prefix web
         env:
           VITE_API_BASE: http://localhost:8080
+
+      # Run basic linting if available
+      - name: Lint Gateway
+        run: npm run lint --prefix gateway || echo "No lint script found"
+        continue-on-error: true
+
+      - name: Lint Auth Service
+        run: npm run lint --prefix services/auth || echo "No lint script found"
+        continue-on-error: true
+
+      - name: Lint Catalog Service
+        run: npm run lint --prefix services/catalog || echo "No lint script found"
+        continue-on-error: true
