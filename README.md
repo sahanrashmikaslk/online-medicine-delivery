@@ -531,7 +531,7 @@ For deployment issues:
 ---
 
 <div align="center">
-**Production Ready Azure Deployment**
+Production Ready Azure Deployment
 
 _Access your application at: http://20.106.187.119:3000_
 git clone https://github.com/sahanrashmikaslk/online-medicine-delivery.git
