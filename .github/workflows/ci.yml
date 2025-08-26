@@ -7,11 +7,31 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm ci --prefix gateway
-      - run: npm ci --prefix services/auth
-      - run: npm ci --prefix services/catalog
-      - run: npm ci --prefix services/order
-      - run: npm ci --prefix services/delivery
-      - run: npm ci --prefix services/notification
-      - run: npm ci --prefix web
-      - run: npm run build --prefix web
+      
+      # Install dependencies for all services
+      - name: Install Gateway Dependencies
+        run: npm ci --prefix gateway
+      
+      - name: Install Auth Service Dependencies
+        run: npm ci --prefix services/auth
+      
+      - name: Install Catalog Service Dependencies
+        run: npm ci --prefix services/catalog
+      
+      - name: Install Order Service Dependencies
+        run: npm ci --prefix services/order
+      
+      - name: Install Delivery Service Dependencies
+        run: npm ci --prefix services/delivery
+      
+      - name: Install Notification Service Dependencies
+        run: npm ci --prefix services/notification
+      
+      - name: Install Web Dependencies
+        run: npm ci --prefix web
+      
+      # Build web application
+      - name: Build Web Application
+        run: npm run build --prefix web
+        env:
+          VITE_API_BASE: http://localhost:8080
