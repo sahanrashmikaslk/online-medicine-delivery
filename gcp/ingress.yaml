@@ -11,23 +11,23 @@ metadata:
     kubernetes.io/ingress.allow-http: "false"
 spec:
   rules:
-  - host: medicine-delivery.your-domain.com
-    http:
-      paths:
-      - path: /api/*
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: gateway-cluster-ip
-            port:
-              number: 8080
-      - path: /*
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: frontend-cluster-ip
-            port:
-              number: 3000
+    - host: medicine-delivery.your-domain.com
+      http:
+        paths:
+          - path: /api/*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend-cluster-ip
+                port:
+                  number: 3000
 ---
 # Managed SSL Certificate
 apiVersion: networking.gke.io/v1

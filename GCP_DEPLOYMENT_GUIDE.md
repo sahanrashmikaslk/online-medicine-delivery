@@ -66,12 +66,14 @@ This guide provides comprehensive instructions for deploying the Online Medicine
 ## Prerequisites
 
 ### Required Tools
+
 - Google Cloud SDK (`gcloud`)
 - Kubernetes CLI (`kubectl`)
 - Docker
 - Git
 
 ### GCP Account Setup
+
 1. Create a Google Cloud Project
 2. Enable billing for your project
 3. Install and authenticate gcloud CLI
@@ -102,6 +104,7 @@ git checkout google-cloud-deployment
 Update the following files with your project details:
 
 **deploy-gcp.sh**
+
 ```bash
 PROJECT_ID="your-gcp-project-id"        # Change this
 CLUSTER_NAME="medicine-delivery-cluster"
@@ -110,13 +113,15 @@ ZONE="us-central1-a"
 ```
 
 **gcp/configmap.yaml**
+
 ```yaml
-CORS_ORIGIN: "https://your-domain.com"  # Change this
+CORS_ORIGIN: "https://your-domain.com" # Change this
 ```
 
 **gcp/ingress.yaml**
+
 ```yaml
-- host: your-domain.com                 # Change this
+- host: your-domain.com # Change this
 ```
 
 ### 3. Deploy to Google Cloud
@@ -147,6 +152,7 @@ gcloud compute addresses describe medicine-delivery-ip --global
 All environment variables are managed through Kubernetes ConfigMaps and Secrets:
 
 **ConfigMap (gcp/configmap.yaml):**
+
 - `NODE_ENV`: production
 - `CORS_ORIGIN`: Your domain URL
 - `DATABASE_HOST`: postgres-cluster-ip
@@ -154,6 +160,7 @@ All environment variables are managed through Kubernetes ConfigMaps and Secrets:
 - `RABBITMQ_HOST`: rabbitmq-cluster-ip
 
 **Secrets (gcp/configmap.yaml):**
+
 - `jwt-secret`: JWT signing key (base64 encoded)
 - `database-password`: PostgreSQL password (base64 encoded)
 - `redis-password`: Redis password (base64 encoded)
@@ -163,18 +170,19 @@ All environment variables are managed through Kubernetes ConfigMaps and Secrets:
 
 The platform includes Horizontal Pod Autoscaling (HPA) for automatic scaling:
 
-| Service | Min Replicas | Max Replicas | CPU Threshold | Memory Threshold |
-|---------|--------------|--------------|---------------|------------------|
-| Gateway | 2            | 10           | 70%           | 80%              |
-| Auth    | 2            | 8            | 70%           | -                |
-| Catalog | 2            | 8            | 70%           | -                |
-| Order   | 2            | 8            | 70%           | -                |
-| Delivery| 2            | 6            | 70%           | -                |
-| Frontend| 2            | 6            | 70%           | -                |
+| Service  | Min Replicas | Max Replicas | CPU Threshold | Memory Threshold |
+| -------- | ------------ | ------------ | ------------- | ---------------- |
+| Gateway  | 2            | 10           | 70%           | 80%              |
+| Auth     | 2            | 8            | 70%           | -                |
+| Catalog  | 2            | 8            | 70%           | -                |
+| Order    | 2            | 8            | 70%           | -                |
+| Delivery | 2            | 6            | 70%           | -                |
+| Frontend | 2            | 6            | 70%           | -                |
 
 ### Storage Configuration
 
 **Persistent Volumes:**
+
 - PostgreSQL: 10Gi (standard-rwo)
 - Redis: 5Gi (standard-rwo)
 - RabbitMQ: 5Gi (standard-rwo)
@@ -252,16 +260,19 @@ kubectl port-forward svc/gateway-cluster-ip 8080:8080 -n medicine-delivery
 ## Cost Optimization
 
 ### Free Tier Benefits
+
 - GKE Autopilot cluster management: Free
 - Google Cloud Load Balancer: $18/month
 - Persistent Disk: $0.04/GB/month
 - Container Registry: 0.5GB free storage
 
 ### Estimated Monthly Costs
+
 - **Development**: $50-100/month
 - **Production**: $200-500/month (depends on traffic)
 
 ### Cost Optimization Tips
+
 1. Use preemptible instances for non-critical workloads
 2. Enable cluster autoscaling
 3. Use appropriate machine types (e2-medium for development)
@@ -272,23 +283,27 @@ kubectl port-forward svc/gateway-cluster-ip 8080:8080 -n medicine-delivery
 ### Common Issues
 
 **1. Pod CrashLoopBackOff**
+
 ```bash
 kubectl describe pod POD_NAME -n medicine-delivery
 kubectl logs POD_NAME -n medicine-delivery
 ```
 
 **2. Service Unavailable**
+
 ```bash
 kubectl get endpoints -n medicine-delivery
 kubectl describe service SERVICE_NAME -n medicine-delivery
 ```
 
 **3. Database Connection Issues**
+
 ```bash
 kubectl exec -it deployment/postgres -n medicine-delivery -- psql -U postgres -d medicine_delivery
 ```
 
 **4. SSL Certificate Issues**
+
 ```bash
 kubectl describe managedcertificate medicine-delivery-ssl -n medicine-delivery
 ```
@@ -296,6 +311,7 @@ kubectl describe managedcertificate medicine-delivery-ssl -n medicine-delivery
 ### Health Checks
 
 All services include health check endpoints:
+
 - Gateway: `GET /health`
 - Auth: `GET /health`
 - Catalog: `GET /health`
@@ -315,6 +331,7 @@ All services include health check endpoints:
 ## Backup and Recovery
 
 ### Database Backup
+
 ```bash
 # Create backup job
 kubectl create job postgres-backup --from=cronjob/postgres-backup -n medicine-delivery
@@ -324,6 +341,7 @@ kubectl exec -it deployment/postgres -n medicine-delivery -- pg_dump -U postgres
 ```
 
 ### Disaster Recovery
+
 - Use Google Cloud SQL for managed PostgreSQL with automatic backups
 - Implement cross-region replication for critical data
 - Regular backup testing and recovery procedures
@@ -331,13 +349,16 @@ kubectl exec -it deployment/postgres -n medicine-delivery -- pg_dump -U postgres
 ## Support and Maintenance
 
 ### Monitoring Alerts
+
 Set up alerts for:
+
 - Pod restart rates
 - CPU/Memory usage thresholds
 - Database connection issues
 - SSL certificate expiration
 
 ### Regular Maintenance
+
 - Update Docker images monthly
 - Review and update resource limits
 - Monitor costs and optimize resources

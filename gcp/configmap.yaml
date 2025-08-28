@@ -20,7 +20,7 @@ metadata:
 type: Opaque
 data:
   # Base64 encoded values (replace with your actual encoded secrets)
-  jwt-secret: bXlfc2VjcmV0X2p3dF9rZXk=  # my_secret_jwt_key
-  database-password: bXlwYXNzd29yZA==      # mypassword
-  redis-password: cmVkaXNwYXNz            # redispass
-  rabbitmq-password: cmFiYml0cGFzcw==      # rabbitpass
+  jwt-secret: bXlfc2VjcmV0X2p3dF9rZXk= # my_secret_jwt_key
+  database-password: bXlwYXNzd29yZA== # mypassword
+  redis-password: cmVkaXNwYXNz # redispass
+  rabbitmq-password: cmFiYml0cGFzcw== # rabbitpass

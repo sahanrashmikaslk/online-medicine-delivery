@@ -12,18 +12,18 @@ spec:
   minReplicas: 2
   maxReplicas: 10
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ---
 # HPA for Auth Service
 apiVersion: autoscaling/v2
@@ -39,12 +39,12 @@ spec:
   minReplicas: 2
   maxReplicas: 8
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ---
 # HPA for Catalog Service
 apiVersion: autoscaling/v2
@@ -60,12 +60,12 @@ spec:
   minReplicas: 2
   maxReplicas: 8
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ---
 # HPA for Order Service
 apiVersion: autoscaling/v2
@@ -81,12 +81,12 @@ spec:
   minReplicas: 2
   maxReplicas: 8
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ---
 # HPA for Delivery Service
 apiVersion: autoscaling/v2
@@ -102,12 +102,12 @@ spec:
   minReplicas: 2
   maxReplicas: 6
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 ---
 # HPA for Frontend
 apiVersion: autoscaling/v2
@@ -123,9 +123,9 @@ spec:
   minReplicas: 2
   maxReplicas: 6
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
