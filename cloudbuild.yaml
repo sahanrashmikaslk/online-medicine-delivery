@@ -1,0 +1,121 @@
+# Google Cloud Build configuration for automated CI/CD
+steps:
+  # Build Gateway
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-gateway'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/gateway:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/gateway:latest'
+      - './gateway'
+
+  # Build Auth Service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-auth'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/auth:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/auth:latest'
+      - './services/auth'
+
+  # Build Catalog Service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-catalog'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/catalog:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/catalog:latest'
+      - './services/catalog'
+
+  # Build Order Service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-order'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/order:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/order:latest'
+      - './services/order'
+
+  # Build Delivery Service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-delivery'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/delivery:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/delivery:latest'
+      - './services/delivery'
+
+  # Build Notification Service
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-notification'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/notification:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/notification:latest'
+      - './services/notification'
+
+  # Build Frontend
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args: 
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/frontend:latest'
+      - './web'
+
+  # Deploy to GKE
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-to-gke'
+    args:
+      - 'run'
+      - '--filename=gcp/'
+      - '--cluster=medicine-delivery-cluster'
+      - '--location=us-central1-a'
+      - '--namespace=medicine-delivery'
+    waitFor:
+      - 'build-gateway'
+      - 'build-auth'
+      - 'build-catalog'
+      - 'build-order'
+      - 'build-delivery'
+      - 'build-notification'
+      - 'build-frontend'
+
+# Push all images to Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/gateway:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gateway:latest'
+  - 'gcr.io/$PROJECT_ID/auth:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/auth:latest'
+  - 'gcr.io/$PROJECT_ID/catalog:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/catalog:latest'
+  - 'gcr.io/$PROJECT_ID/order:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/order:latest'
+  - 'gcr.io/$PROJECT_ID/delivery:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/delivery:latest'
+  - 'gcr.io/$PROJECT_ID/notification:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/notification:latest'
+  - 'gcr.io/$PROJECT_ID/frontend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/frontend:latest'
+
+# Build configuration
+options:
+  machineType: 'E2_HIGHCPU_8'
+  substitution_option: 'ALLOW_LOOSE'
+  
+# Build timeout
+timeout: '1200s'

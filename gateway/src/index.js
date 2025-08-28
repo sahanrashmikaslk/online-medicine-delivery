@@ -14,8 +14,8 @@ app.use(helmet({
   contentSecurityPolicy: false, // Disable CSP for Azure deployment
 }));
 
-// Configure CORS for Azure deployment
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean);
+// Configure CORS for Google Cloud deployment
+const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').filter(Boolean);
 app.use(cors({
   origin: allowedOrigins.length > 0 ? allowedOrigins : true,
   credentials: true,
@@ -48,11 +48,11 @@ function requireRole(role) {
 }
 
 const targets = {
-  auth: process.env.TARGET_AUTH || 'http://auth:3001',
-  catalog: process.env.TARGET_CATALOG || 'http://catalog:3002',
-  order: process.env.TARGET_ORDER || 'http://order:3003',
-  delivery: process.env.TARGET_DELIVERY || 'http://delivery:3004',
-  notification: process.env.TARGET_NOTIFICATION || 'http://notification:3005',
+  auth: process.env.AUTH_SERVICE_URL || 'http://auth-cluster-ip:3001',
+  catalog: process.env.CATALOG_SERVICE_URL || 'http://catalog-cluster-ip:3002',
+  order: process.env.ORDER_SERVICE_URL || 'http://order-cluster-ip:3003',
+  delivery: process.env.DELIVERY_SERVICE_URL || 'http://delivery-cluster-ip:3004',
+  notification: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-cluster-ip:3005',
 };
 
 // Health

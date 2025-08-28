@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: medicine-delivery
+data:
+  NODE_ENV: "production"
+  CORS_ORIGIN: "https://medicine-delivery.your-domain.com"
+  REDIS_HOST: "redis-cluster-ip"
+  RABBITMQ_HOST: "rabbitmq-cluster-ip"
+  DATABASE_HOST: "postgres-cluster-ip"
+  DATABASE_NAME: "medicine_delivery"
+  DATABASE_PORT: "5432"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: medicine-delivery
+type: Opaque
+data:
+  # Base64 encoded values (replace with your actual encoded secrets)
+  jwt-secret: bXlfc2VjcmV0X2p3dF9rZXk=  # my_secret_jwt_key
+  database-password: bXlwYXNzd29yZA==      # mypassword
+  redis-password: cmVkaXNwYXNz            # redispass
+  rabbitmq-password: cmFiYml0cGFzcw==      # rabbitpass
