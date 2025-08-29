@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: gcr.io/YOUR_PROJECT_ID/auth:latest
+          image: gcr.io/ethereal-atlas-470405-g5/auth:latest
           ports:
             - containerPort: 3001
           env:
@@ -31,7 +31,7 @@ spec:
                   name: app-secrets
                   key: jwt-secret
             - name: DATABASE_URL
-              value: "postgresql://postgres:$(DATABASE_PASSWORD)@postgres-cluster-ip:5432/medicine_delivery"
+              value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -89,7 +89,7 @@ spec:
     spec:
       containers:
         - name: catalog
-          image: gcr.io/YOUR_PROJECT_ID/catalog:latest
+          image: gcr.io/ethereal-atlas-470405-g5/catalog:latest
           ports:
             - containerPort: 3002
           env:
@@ -99,14 +99,14 @@ spec:
                   name: app-config
                   key: NODE_ENV
             - name: DATABASE_URL
-              value: "postgresql://postgres:$(DATABASE_PASSWORD)@postgres-cluster-ip:5432/medicine_delivery"
+              value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
                   key: database-password
             - name: REDIS_URL
-              value: "redis://:$(REDIS_PASSWORD)@redis-cluster-ip:6379"
+              value: "redis://:redispass@redis-cluster-ip:6379"
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:

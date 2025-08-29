@@ -74,8 +74,8 @@ app.post('/', async (req,res)=>{
 
     // create order
     const o = await pool.query(
-      'INSERT INTO orders(user_id,total,status) VALUES ($1,$2,$3) RETURNING *',
-      [user.sub, total, 'PLACED']
+      'INSERT INTO orders(user_id,total_amount,status,delivery_address) VALUES ($1,$2,$3,$4) RETURNING *',
+      [user.sub, total, 'PLACED', data.address]
     );
 
     // items + stock deduction
@@ -105,8 +105,20 @@ app.get('/', async (req,res)=>{
   try{
     const user = getUser(req);
     if(!user) return res.status(401).json({error:'unauthorized'});
-    const r = await pool.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [user.sub]);
-    res.json(r.rows);
+    const orders = await pool.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [user.sub]);
+    
+    // Get order items for each order
+    const ordersWithItems = await Promise.all(orders.rows.map(async (order) => {
+      const items = await pool.query(`
+        SELECT oi.*, m.name as medicine_name 
+        FROM order_items oi 
+        LEFT JOIN medicines m ON oi.medicine_id = m.id 
+        WHERE oi.order_id = $1
+      `, [order.id]);
+      return { ...order, items: items.rows };
+    }));
+    
+    res.json(ordersWithItems);
   }catch(e){
     console.error(e);
     res.status(500).json({error:'internal'});

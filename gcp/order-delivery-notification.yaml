@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: gcr.io/YOUR_PROJECT_ID/order:latest
+          image: gcr.io/ethereal-atlas-470405-g5/order:latest
           ports:
             - containerPort: 3003
           env:
@@ -26,14 +26,14 @@ spec:
                   name: app-config
                   key: NODE_ENV
             - name: DATABASE_URL
-              value: "postgresql://postgres:$(DATABASE_PASSWORD)@postgres-cluster-ip:5432/medicine_delivery"
+              value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
                   key: database-password
             - name: RABBITMQ_URL
-              value: "amqp://admin:$(RABBITMQ_PASSWORD)@rabbitmq-cluster-ip:5672"
+              value: "amqp://admin:rabbitpass@rabbitmq-cluster-ip:5672"
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -41,11 +41,11 @@ spec:
                   key: rabbitmq-password
           resources:
             requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
               memory: "128Mi"
               cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "200m"
           livenessProbe:
             httpGet:
               path: /health
@@ -91,7 +91,7 @@ spec:
     spec:
       containers:
         - name: delivery
-          image: gcr.io/YOUR_PROJECT_ID/delivery:latest
+          image: gcr.io/ethereal-atlas-470405-g5/delivery:latest
           ports:
             - containerPort: 3004
           env:
@@ -101,14 +101,14 @@ spec:
                   name: app-config
                   key: NODE_ENV
             - name: DATABASE_URL
-              value: "postgresql://postgres:$(DATABASE_PASSWORD)@postgres-cluster-ip:5432/medicine_delivery"
+              value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
                   key: database-password
             - name: RABBITMQ_URL
-              value: "amqp://admin:$(RABBITMQ_PASSWORD)@rabbitmq-cluster-ip:5672"
+              value: "amqp://admin:rabbitpass@rabbitmq-cluster-ip:5672"
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -166,7 +166,7 @@ spec:
     spec:
       containers:
         - name: notification
-          image: gcr.io/YOUR_PROJECT_ID/notification:latest
+          image: gcr.io/ethereal-atlas-470405-g5/notification:latest
           ports:
             - containerPort: 3005
           env:
@@ -176,7 +176,7 @@ spec:
                   name: app-config
                   key: NODE_ENV
             - name: RABBITMQ_URL
-              value: "amqp://admin:$(RABBITMQ_PASSWORD)@rabbitmq-cluster-ip:5672"
+              value: "amqp://admin:rabbitpass@rabbitmq-cluster-ip:5672"
             - name: RABBITMQ_PASSWORD
               valueFrom:
                 secretKeyRef:

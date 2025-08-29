@@ -168,7 +168,7 @@ export default function Orders({ token }){
       {/* Orders List */}
       <div className="space-y-6">
         {orders.map(order => {
-          const orderTotal = order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0
+          const orderTotal = order.items?.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0) || 0
           
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -184,7 +184,7 @@ export default function Orders({ token }){
                       <span>•</span>
                       <span>{order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}</span>
                       <span>•</span>
-                      <span className="font-semibold text-gray-900">${orderTotal.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900">Rs.{orderTotal.toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -216,8 +216,8 @@ export default function Orders({ token }){
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-gray-900">${(item.price * item.quantity).toFixed(2)}</div>
-                          <div className="text-sm text-gray-600">${item.price.toFixed(2)} each</div>
+                          <div className="font-semibold text-gray-900">Rs.{(Number(item.price) * item.quantity).toFixed(2)}</div>
+                          <div className="text-sm text-gray-600">Rs.{Number(item.price).toFixed(2)} each</div>
                         </div>
                       </div>
                     ))}

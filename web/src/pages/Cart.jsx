@@ -4,7 +4,7 @@ import { api } from '../api'
 
 export default function Cart({ cart, setCart, token }){
   const nav = useNavigate()
-  const total = cart.reduce((s,i)=> s + i.price * i.qty, 0)
+  const total = cart.reduce((s,i)=> s + Number(i.price) * i.qty, 0)
 
   const checkout = async ()=>{
     if (!token) return nav('/login')
@@ -94,7 +94,7 @@ export default function Cart({ cart, setCart, token }){
                           {item.description || 'No description available'}
                         </p>
                         <div className="text-lg font-bold text-blue-600">
-                          ${Number(item.price).toFixed(2)} each
+                          Rs.{Number(item.price).toFixed(2)} each
                         </div>
                       </div>
                     </div>
@@ -127,7 +127,7 @@ export default function Cart({ cart, setCart, token }){
                       {/* Item Total */}
                       <div className="text-right min-w-[5rem]">
                         <div className="text-lg font-bold text-gray-900">
-                          ${(item.price * item.qty).toFixed(2)}
+                          Rs.{(Number(item.price) * item.qty).toFixed(2)}
                         </div>
                       </div>
 
@@ -158,7 +158,7 @@ export default function Cart({ cart, setCart, token }){
             <div className="space-y-4 mb-6">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal ({cart.reduce((sum, item) => sum + item.qty, 0)} items)</span>
-                <span>${total.toFixed(2)}</span>
+                <span>Rs.{total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
@@ -166,12 +166,12 @@ export default function Cart({ cart, setCart, token }){
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Tax</span>
-                <span>${(total * 0.08).toFixed(2)}</span>
+                <span>Rs.{(total * 0.08).toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex justify-between text-lg font-bold text-gray-900">
                   <span>Total</span>
-                  <span>${(total * 1.08).toFixed(2)}</span>
+                  <span>Rs.{(total * 1.08).toFixed(2)}</span>
                 </div>
               </div>
             </div>

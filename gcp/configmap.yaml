@@ -5,7 +5,7 @@ metadata:
   namespace: medicine-delivery
 data:
   NODE_ENV: "production"
-  CORS_ORIGIN: "https://medicine-delivery.your-domain.com"
+  CORS_ORIGIN: "http://34.173.223.100"
   REDIS_HOST: "redis-cluster-ip"
   RABBITMQ_HOST: "rabbitmq-cluster-ip"
   DATABASE_HOST: "postgres-cluster-ip"

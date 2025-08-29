@@ -152,7 +152,7 @@ export default function Catalog({ addToCart }){
                 {/* Price and Add to Cart */}
                 <div className="flex items-center justify-between">
                   <div className="text-2xl font-bold text-gray-900">
-                    ${Number(medicine.price).toFixed(2)}
+                    Rs.{Number(medicine.price).toFixed(2)}
                   </div>
                   <button 
                     onClick={() => handleAddToCart(medicine)}

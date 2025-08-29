@@ -1,0 +1,91 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: init-database
+  namespace: medicine-delivery
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init-db
+          image: postgres:15
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: database-password
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for PostgreSQL to be ready..."
+              until psql -h postgres-cluster-ip -U postgres -d medicine_delivery -c '\q' 2>/dev/null; do
+                echo "PostgreSQL is not ready yet. Waiting..."
+                sleep 2
+              done
+              echo "PostgreSQL is ready. Creating tables..."
+
+              psql -h postgres-cluster-ip -U postgres -d medicine_delivery << 'EOF'
+              CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                role VARCHAR(50) DEFAULT 'CUSTOMER',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+
+              CREATE TABLE IF NOT EXISTS medicines (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                price DECIMAL(10, 2) NOT NULL,
+                stock INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+
+              CREATE TABLE IF NOT EXISTS orders (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                total_amount DECIMAL(10, 2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'PENDING',
+                delivery_address TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+
+              CREATE TABLE IF NOT EXISTS order_items (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER REFERENCES orders(id),
+                medicine_id INTEGER REFERENCES medicines(id),
+                quantity INTEGER NOT NULL,
+                price DECIMAL(10, 2) NOT NULL
+              );
+
+              CREATE TABLE IF NOT EXISTS deliveries (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER REFERENCES orders(id),
+                delivery_person VARCHAR(255),
+                status VARCHAR(50) DEFAULT 'PENDING',
+                estimated_delivery TIMESTAMP,
+                actual_delivery TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+              );
+
+              -- Insert sample medicines
+              INSERT INTO medicines (name, description, price, stock) VALUES
+              ('Paracetamol 500mg', 'Pain reliever and fever reducer', 25.50, 100),
+              ('Amoxicillin 250mg', 'Antibiotic for bacterial infections', 85.00, 50),
+              ('Vitamin D3', 'Vitamin D supplement', 45.00, 75),
+              ('Aspirin 100mg', 'Blood thinner and pain reliever', 30.00, 80),
+              ('Omeprazole 20mg', 'Acid reflux medication', 65.00, 60)
+              ON CONFLICT DO NOTHING;
+
+              -- Create admin user (password: admin123)
+              INSERT INTO users (email, password_hash, role) VALUES
+              ('admin@medicinedelivery.com', '$2b$10$8K1p/a0dHTBS89XPR9YzqeFBPYP8SeCZc9rKtRduwNGh9EKBFK4YW', 'ADMIN')
+              ON CONFLICT DO NOTHING;
+
+              EOF
+
+              echo "Database initialization completed successfully!"
