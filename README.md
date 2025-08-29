@@ -627,6 +627,10 @@ kubectl rollout undo deployment/order -n medicine-delivery
 
 ```
 online-medicine-delivery/
+├── .git/                             # Git repository
+├── .github/                          # GitHub workflows and templates
+├── .gitignore                        # Git ignore configuration
+├── docker-compose.yml                # Local development setup
 ├── gcp/                              # Google Cloud Platform deployment files
 │   ├── namespace.yaml                # Kubernetes namespace configuration
 │   ├── postgres.yaml                 # PostgreSQL deployment and service
@@ -666,28 +670,29 @@ online-medicine-delivery/
 ├── web/                              # React frontend
 │   ├── Dockerfile
 │   ├── package.json
-│   ├── vite.config.js
-│   ├── tailwind.config.js
+│   ├── index.html                    # HTML template
+│   ├── nginx.conf                    # Nginx configuration for production
+│   ├── vite.config.js               # Vite build configuration
+│   ├── tailwind.config.js           # Tailwind CSS configuration
+│   ├── postcss.config.js            # PostCSS configuration
 │   └── src/
-│       ├── App.jsx
-│       ├── main.jsx
+│       ├── App.jsx                   # Main React application
+│       ├── main.jsx                  # Application entry point
+│       ├── index.css                 # Global styles
 │       ├── api.js                    # API client configuration
 │       ├── components/               # React components
-│       │   └── Navbar.jsx
+│       │   └── Navbar.jsx            # Navigation component
 │       └── pages/                    # Application pages
-│           ├── Home.jsx
-│           ├── Login.jsx
-│           ├── Register.jsx
-│           ├── Catalog.jsx
-│           ├── Cart.jsx
-│           ├── Orders.jsx
-│           └── AdminDashboard.jsx
+│           ├── Home.jsx              # Landing page
+│           ├── Login.jsx             # User login
+│           ├── Register.jsx          # User registration
+│           ├── Catalog.jsx           # Medicine catalog
+│           ├── Cart.jsx              # Shopping cart
+│           ├── Orders.jsx            # Order history
+│           └── AdminDashboard.jsx    # Admin interface
 ├── scripts/                          # Database scripts
 │   └── db/init.sql                   # Database schema and seed data
-├── docker-compose.yml                # Local development setup
-├── docker-compose.prod.yml           # Production Docker setup (Azure)
-├── GCP_DEPLOYMENT_GUIDE.md          # Detailed GCP deployment guide
-└── README.md                         # This file
+└── README.md                         # This documentation
 ```
 
 ## Features
