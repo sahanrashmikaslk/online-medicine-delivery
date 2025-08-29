@@ -1,4 +1,4 @@
-# Online Medicine Delivery System - Azure Deployment
+# Online Medicine Delivery System - Google Cloud Platform Deployment
 
 <div align="center">
 
@@ -8,21 +8,21 @@
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![RabbitMQ](https://img.shields.io/badge/Rabbitmq-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![Azure](https://img.shields.io/badge/microsoft%20azure-0089D0?style=for-the-badge&logo=microsoft-azure&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Google Cloud](https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white)
 
-_Production Deployment on Azure VM_
+_Production Deployment on Google Kubernetes Engine (GKE)_
 
 </div>
 
 ## Overview
 
-This is the Azure deployment branch for the Online Medicine Delivery System, specifically configured for production deployment on Azure VM (20.106.187.119). The application demonstrates modern microservices architecture with Docker containerization, API gateway pattern, and event-driven communication.
+This is the Google Cloud Platform deployment branch for the Online Medicine Delivery System, specifically configured for production deployment on Google Kubernetes Engine. The application demonstrates modern microservices architecture with Kubernetes orchestration, container images stored in Google Artifact Registry, and event-driven communication.
 
 ## Live Application
 
-- **Frontend**: http://20.106.187.119:3000
-- **API Gateway**: http://20.106.187.119:8080
-- **RabbitMQ Management**: http://20.106.187.119:15672
+- **Frontend**: http://34.173.223.100
+- **API Gateway**: http://34.136.203.92
 
 ### Admin Credentials
 
@@ -51,24 +51,28 @@ This is the Azure deployment branch for the Online Medicine Delivery System, spe
 - Redis 7 - Caching layer
 - RabbitMQ 3 - Message broker
 - Docker - Containerization
-- Docker Compose - Service orchestration
+- Google Kubernetes Engine (GKE) - Container orchestration
+- Google Artifact Registry - Container image storage
+- Google Cloud Build - CI/CD pipeline
 
 ## Architecture
 
-````
-Internet → Azure VM (20.106.187.119)
+```
+Internet → Google Cloud Load Balancer
     ↓
 ┌───────────────────────────────────────────────────────────────────────────────┐
-│                              DOCKER NETWORK                                   │
+│                          GOOGLE KUBERNETES ENGINE                             │
+│                        Namespace: medicine-delivery                           │
 │                                                                               │
 │  ┌─────────────────┐                      ┌─────────────────┐                 │
-│  │   React Web     │◄──── HTTP/HTTPS ────►│  API Gateway    │                 │
+│  │   React Web     │◄──── LoadBalancer ──►│  API Gateway    │                 │
 │  │   Frontend      │                      │  (Express.js)   │                 │
-│  │   Port: 3000    │                      │   Port: 8080    │                 │
+│  │ External IP:    │                      │ External IP:    │                 │
+│  │ 34.173.223.100  │                      │ 34.136.203.92   │                 │
 │  │                 │                      │                 │                 │
 │  │ • User Interface│                      │ • Authentication│                 │
-│  │ • Vite Dev      │                      │ • Route Proxy   │                 │
-│  │ • Tailwind CSS  │                      │ • CORS Handling │                 │
+│  │ • Nginx Server  │                      │ • Route Proxy   │                 │
+│  │ • Static Assets │                      │ • CORS Handling │                 │
 │  └─────────────────┘                      └─────────┬───────┘                 │
 │                                                     │                         │
 │                               ┌─────────────────────┼─────────────────────┐   │
@@ -76,7 +80,8 @@ Internet → Azure VM (20.106.187.119)
 │                               ▼                     ▼                     ▼   │
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐     │
 │  │Auth Service │    │Cat. Service │    │Order Service│    │Delivery Srv │     │
-│  │Port: 3001   │    │Port: 3002   │    │Port: 3003   │    │Port: 3004   │     │
+│  │ClusterIP    │    │ClusterIP    │    │ClusterIP    │    │ClusterIP    │     │
+│  │:3001        │    │:3002        │    │:3003        │    │:3004        │     │
 │  │             │    │             │    │             │    │             │     │
 │  │• JWT Auth   │    │• Medicine   │    │• Order Mgmt │    │• Track Deliv│     │
 │  │• User Mgmt  │    │• Inventory  │    │• Cart Logic │    │• Status Upd │     │
@@ -91,7 +96,8 @@ Internet → Azure VM (20.106.187.119)
 │┌──────────────┐     ┌──────────────┐  ┌──────────────┐  ┌─────────────┐       │
 ││ PostgreSQL   │     │   Redis      │  │  RabbitMQ    │  │Notification │       │
 ││ Database     │     │   Cache      │  │ Message Que  │  │Service      │       │
-││Port: 5432    │     │Port: 6379    │  │Port: 5672    │  │Port: 3005   │       │
+││ClusterIP     │     │ClusterIP     │  │ClusterIP     │  │ClusterIP    │       │
+││:5432         │     │:6379         │  │:5672,:15672  │  │:3005        │       │
 ││              │     │              │  │              │  │             │       │
 ││• User Data   │     │• Session Mgmt│  │• Event Bus   │  │• Email/SMS  │       │
 ││• Medicine Cat│     │• Fast Lookup │  │• Async Comm  │  │• Push Notif │       │
@@ -100,115 +106,186 @@ Internet → Azure VM (20.106.187.119)
 │└──────────────┘     └──────────────┘  └──────────────┘  └─────────────┘       │
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
-````
+```
 
 ### Data Flow Overview
+
 ```
 USER REQUEST FLOW:
-┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  User   │───►│   React     │───►│ API Gateway │───►│  Services   │
-│Browser  │    │  Frontend   │    │   (8080)    │    │(Auth/Cat/   │
-│         │    │   (3000)    │    │             │    │ Ord/Del)    │
-└─────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+┌─────────┐    ┌─────────────-┐    ┌─────────────┐    ┌─────────────┐
+│  User   │───►│   React      │───►│ API Gateway │───►│  Services   │
+│Browser  │    │  Frontend    │    │ LoadBalancer│    │(Auth/Cat/   │
+│         │    │ LoadBalancer │    │34.136.203.92│    │ Ord/Del)    │
+│         │    │34.173.223.100│    │             │    │(ClusterIP)  │
+└─────────┘    └────────────-─┘    └─────────────┘    └─────────────┘
                       │                                     │
                       │            ┌─────────────┐          │
                       └───────►───►│ PostgreSQL  │◄─────────┘
                                    │  Database   │
-                                   │   (5432)    │
+                                   │(ClusterIP)  │
                                    └─────────────┘
 
 EVENT-DRIVEN COMMUNICATION:
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │Order Service│───►│  RabbitMQ   │───►│Delivery Srv │───►│Notification │
 │  (Place)    │    │ Message Bus │    │ (Process)   │    │Service      │
-│             │    │   (5672)    │    │             │    │(Notify User)│
+│             │    │(ClusterIP)  │    │             │    │(Notify User)│
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
-## Service Configuration
 
-### External Ports (Azure VM)
+## Kubernetes Service Configuration
+
+### External Services (LoadBalancer)
+
 ```
-| Service             | Internal Port | External Port | Description        |
-| ------------------- | ------------- | ------------- | ------------------ |
-| Web Frontend        | 5173          | 3000          | React Application  |
-| API Gateway         | 8080          | 8080          | API Gateway & Auth |
-| PostgreSQL          | 5432          | 5432          | Primary Database   |
-| Redis               | 6379          | 6379          | Cache Layer        |
-| RabbitMQ            | 5672          | 5672          | Message Broker     |
-| RabbitMQ Management | 15672         | 15672         | Management UI      |
+| Service             | Type         | External IP    | Port | Description        |
+| ------------------- | ------------ | -------------- | ---- | ------------------ |
+| frontend-external   | LoadBalancer | 34.173.223.100 | 80   | React Application  |
+| gateway-external    | LoadBalancer | 34.136.203.92  | 80   | API Gateway        |
 ```
-### Internal Services (Docker Network)
-````
-| Service              | Port | Description         | Dependencies         |
-| -------------------- | ---- | ------------------- | -------------------- |
-| Auth Service         | 3001 | User Authentication | PostgreSQL           |
-| Catalog Service      | 3002 | Medicine Catalog    | PostgreSQL, Redis    |
-| Order Service        | 3003 | Order Management    | PostgreSQL, RabbitMQ |
-| Delivery Service     | 3004 | Delivery Tracking   | PostgreSQL, RabbitMQ |
-| Notification Service | 3005 | Notifications       | RabbitMQ             |
-````
+
+### Internal Services (ClusterIP)
+
+```
+| Service              | Type      | Cluster IP      | Port        | Description         |
+| -------------------- | --------- | --------------- | ----------- | ------------------- |
+| auth-cluster-ip      | ClusterIP | 34.118.230.221  | 3001        | User Authentication |
+| catalog-cluster-ip   | ClusterIP | 34.118.229.98   | 3002        | Medicine Catalog    |
+| order-cluster-ip     | ClusterIP | 34.118.236.5    | 3003        | Order Management    |
+| delivery-cluster-ip  | ClusterIP | 34.118.239.254  | 3004        | Delivery Tracking   |
+| notification-cluster-ip | ClusterIP | 34.118.231.240 | 3005        | Notifications       |
+| postgres-cluster-ip  | ClusterIP | 34.118.228.201  | 5432        | Primary Database    |
+| redis-cluster-ip     | ClusterIP | 34.118.233.128  | 6379        | Cache Layer         |
+| rabbitmq-cluster-ip  | ClusterIP | 34.118.235.246  | 5672,15672  | Message Broker      |
+```
+
+### Pod Deployments
+
+```
+| Deployment    | Replicas | Image Registry                                    | Status  |
+| ------------- | -------- | ------------------------------------------------- | ------- |
+| auth          | 1        | us-central1-docker.pkg.dev/.../auth-service      | Running |
+| catalog       | 1        | us-central1-docker.pkg.dev/.../catalog-service   | Running |
+| order         | 2        | us-central1-docker.pkg.dev/.../order-service     | Running |
+| delivery      | 2        | us-central1-docker.pkg.dev/.../delivery-service  | Running |
+| notification  | 1        | us-central1-docker.pkg.dev/.../notification-service | Running |
+| frontend      | 1        | us-central1-docker.pkg.dev/.../frontend          | Running |
+| gateway       | 1        | us-central1-docker.pkg.dev/.../gateway-service   | Running |
+| postgres      | 1        | postgres:15                                       | Running |
+| redis         | 1        | redis:7-alpine                                    | Running |
+| rabbitmq      | 1        | rabbitmq:3-management-alpine                      | Running |
+```
+
 ## Quick Deployment
 
 ### Prerequisites
 
-- Azure VM with Ubuntu 20.04+
-- Docker & Docker Compose installed
-- Git for repository management
-- 4GB+ RAM and 20GB+ Storage
-- Open ports: 3000, 8080, 5432, 6379, 5672, 15672
+- Google Cloud Platform account with billing enabled
+- Google Cloud SDK (gcloud) installed and configured
+- kubectl configured for GKE cluster
+- Docker installed for local development
+- 4GB+ RAM cluster nodes and sufficient storage
+- Google Cloud Build API enabled
+- Google Artifact Registry API enabled
 
-### One-Click Deployment
+### GKE Cluster Setup
 
 ```bash
-# Clone and deploy
-git clone -b azure-deployment https://github.com/sahanrashmikaslk/online-medicine-delivery.git
+# Set up environment
+export PROJECT_ID=your-project-id
+export CLUSTER_NAME=medicine-delivery-cluster
+export ZONE=us-central1-a
+
+# Create GKE cluster
+gcloud container clusters create $CLUSTER_NAME \
+  --zone=$ZONE \
+  --num-nodes=3 \
+  --enable-autoscaling \
+  --min-nodes=1 \
+  --max-nodes=5 \
+  --machine-type=e2-standard-2
+
+# Get cluster credentials
+gcloud container clusters get-credentials $CLUSTER_NAME --zone=$ZONE
+```
+
+### Container Registry Setup
+
+```bash
+# Create Artifact Registry repository
+gcloud artifacts repositories create online-medicine \
+  --repository-format=docker \
+  --location=us-central1 \
+  --description="Online Medicine Delivery"
+
+# Configure Docker authentication
+gcloud auth configure-docker us-central1-docker.pkg.dev
+```
+
+### Application Deployment
+
+```bash
+# Clone repository
+git clone -b google-cloud-deployment https://github.com/sahanrashmikaslk/online-medicine-delivery.git
 cd online-medicine-delivery
-chmod +x deploy-azure.sh
-./deploy-azure.sh
-````
 
-### Manual Deployment
+# Build and push all service images
+gcloud builds submit services/auth/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/auth-service
+gcloud builds submit services/catalog/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/catalog-service
+gcloud builds submit services/order/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/order-service
+gcloud builds submit services/delivery/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/delivery-service
+gcloud builds submit services/notification/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/notification-service
+gcloud builds submit gateway/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/gateway-service
+gcloud builds submit web/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/frontend
 
-```bash
-# Start all services
-docker-compose -f docker-compose.prod.yml up --build -d
-
-# Check status
-docker-compose -f docker-compose.prod.yml ps
-
-# View logs
-docker-compose -f docker-compose.prod.yml logs -f
+# Deploy to Kubernetes
+kubectl apply -f gcp/namespace.yaml
+kubectl apply -f gcp/postgres.yaml
+kubectl apply -f gcp/redis.yaml
+kubectl apply -f gcp/rabbitmq.yaml
+kubectl apply -f gcp/init-db-job.yaml
+kubectl apply -f gcp/microservices.yaml
+kubectl apply -f gcp/gateway.yaml
+kubectl apply -f gcp/frontend.yaml
 ```
 
 ## Environment Configuration
 
-### Main Environment (.env)
+### Kubernetes ConfigMaps and Secrets
 
 ```bash
-COMPOSE_PROJECT_NAME=meds-prod
-JWT_SECRET=supersecretjwt
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=medsdb
-RABBITMQ_DEFAULT_USER=guest
-RABBITMQ_DEFAULT_PASS=guest
-REDIS_PASSWORD=
-GATEWAY_PORT=8080
-WEB_PORT=3000
+# Database configuration
+kubectl create secret generic postgres-secret \
+  --from-literal=username=postgres \
+  --from-literal=password=postgres \
+  --from-literal=database=medsdb \
+  -n medicine-delivery
+
+# RabbitMQ configuration
+kubectl create secret generic rabbitmq-secret \
+  --from-literal=username=guest \
+  --from-literal=password=guest \
+  -n medicine-delivery
+
+# JWT configuration
+kubectl create secret generic jwt-secret \
+  --from-literal=secret=supersecretjwt \
+  -n medicine-delivery
 ```
 
-### Frontend Configuration (web/.env)
+### Service Environment Variables
 
-```bash
-VITE_API_BASE=http://20.106.187.119:8080
-```
-
-### Gateway Configuration (gateway/.env)
-
-```bash
-PORT=8080
-JWT_SECRET=supersecretjwt
-ALLOWED_ORIGINS=http://20.106.187.119:3000,http://20.106.187.119:8080
+```yaml
+# Example from microservices.yaml
+env:
+  - name: DATABASE_URL
+    value: "postgresql://postgres:postgres@postgres-cluster-ip:5432/medsdb"
+  - name: REDIS_URL
+    value: "redis://redis-cluster-ip:6379"
+  - name: RABBITMQ_URL
+    value: "amqp://guest:guest@rabbitmq-cluster-ip:5672"
+  - name: JWT_SECRET
+    value: "supersecretjwt"
 ```
 
 ## API Testing
@@ -217,12 +294,12 @@ ALLOWED_ORIGINS=http://20.106.187.119:3000,http://20.106.187.119:8080
 
 ```bash
 # Register new user
-curl -X POST http://20.106.187.119:8080/auth/register \
+curl -X POST http://34.136.203.92/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "SecurePass123", "role": "CUSTOMER"}'
 
 # Login user
-curl -X POST http://20.106.187.119:8080/auth/login \
+curl -X POST http://34.136.203.92/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@meds.com", "password": "Admin@123"}'
 ```
@@ -231,20 +308,20 @@ curl -X POST http://20.106.187.119:8080/auth/login \
 
 ```bash
 # Get all medicines
-curl http://20.106.187.119:8080/catalog/medicines
+curl http://34.136.203.92/catalog/medicines
 
 # Search medicines
-curl "http://20.106.187.119:8080/catalog/medicines?search=aspirin"
+curl "http://34.136.203.92/catalog/medicines?search=aspirin"
 ```
 
 ### Order Management
 
 ```bash
 # Create order (requires auth token)
-curl -X POST http://20.106.187.119:8080/orders \
+curl -X POST http://34.136.203.92/orders \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"items": [{"medicineId": 1, "quantity": 2}], "total": 25.98}'
+  -d '{"items": [{"medicine_id": 1, "quantity": 2}], "address": "123 Main St"}'
 ```
 
 ## Database Management
@@ -252,11 +329,12 @@ curl -X POST http://20.106.187.119:8080/orders \
 ### PostgreSQL Access
 
 ```bash
-# Connect via Docker
-docker-compose -f docker-compose.prod.yml exec postgres psql -U postgres -d medsdb
+# Connect via kubectl
+kubectl exec -it deployment/postgres -n medicine-delivery -- psql -U postgres -d medsdb
 
-# Connect externally
-psql -h 20.106.187.119 -p 5432 -U postgres -d medsdb
+# Port forward for external access
+kubectl port-forward service/postgres-cluster-ip 5432:5432 -n medicine-delivery
+psql -h localhost -p 5432 -U postgres -d medsdb
 ```
 
 ### Sample Queries
@@ -268,10 +346,13 @@ SELECT id, email, role, created_at FROM users;
 -- View medicines with stock
 SELECT name, price, stock_quantity, category FROM medicines WHERE stock_quantity > 0;
 
--- View recent orders
-SELECT o.id, u.email, o.total, o.status, o.created_at
+-- View recent orders with items
+SELECT o.id, u.email, o.total_amount, o.status, o.created_at,
+       COUNT(oi.id) as item_count
 FROM orders o
 JOIN users u ON o.user_id = u.id
+LEFT JOIN order_items oi ON o.id = oi.order_id
+GROUP BY o.id, u.email, o.total_amount, o.status, o.created_at
 ORDER BY o.created_at DESC LIMIT 10;
 ```
 
@@ -279,10 +360,10 @@ ORDER BY o.created_at DESC LIMIT 10;
 
 ```bash
 # Backup database
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres medsdb > backup.sql
+kubectl exec deployment/postgres -n medicine-delivery -- pg_dump -U postgres medsdb > backup.sql
 
 # Restore database
-docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres medsdb < backup.sql
+kubectl exec -i deployment/postgres -n medicine-delivery -- psql -U postgres medsdb < backup.sql
 ```
 
 ## Monitoring and Logs
@@ -291,29 +372,52 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U postgres meds
 
 ```bash
 # Check service health
-curl http://20.106.187.119:8080/auth/health
-curl http://20.106.187.119:8080/catalog/health
+curl http://34.136.203.92/auth/health
+curl http://34.136.203.92/catalog/health
 
-# Check database
-docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U postgres
+# Check pod status
+kubectl get pods -n medicine-delivery
 
-# Check Redis
-docker-compose -f docker-compose.prod.yml exec redis redis-cli ping
+# Check service endpoints
+kubectl get services -n medicine-delivery
+
+# Check database connectivity
+kubectl exec deployment/postgres -n medicine-delivery -- pg_isready -U postgres
+
+# Check Redis connectivity
+kubectl exec deployment/redis -n medicine-delivery -- redis-cli ping
 ```
 
 ### Log Management
 
 ```bash
-# View all logs
-docker-compose -f docker-compose.prod.yml logs --tail=100
-
-# View specific service logs
-docker-compose -f docker-compose.prod.yml logs -f gateway
-docker-compose -f docker-compose.prod.yml logs -f auth
-docker-compose -f docker-compose.prod.yml logs -f catalog
+# View all pod logs
+kubectl logs -l app=auth -n medicine-delivery
+kubectl logs -l app=catalog -n medicine-delivery
+kubectl logs -l app=order -n medicine-delivery
 
 # Follow logs in real-time
-docker-compose -f docker-compose.prod.yml logs -f --tail=20
+kubectl logs -f deployment/gateway -n medicine-delivery
+kubectl logs -f deployment/frontend -n medicine-delivery
+
+# View previous container logs
+kubectl logs deployment/order --previous -n medicine-delivery
+```
+
+### Kubernetes Monitoring
+
+```bash
+# Check cluster resource usage
+kubectl top nodes
+kubectl top pods -n medicine-delivery
+
+# View deployment status
+kubectl get deployments -n medicine-delivery
+kubectl describe deployment/order -n medicine-delivery
+
+# Check horizontal pod autoscaler
+kubectl get hpa -n medicine-delivery
+kubectl describe hpa order-hpa -n medicine-delivery
 ```
 
 ## Troubleshooting
@@ -323,66 +427,115 @@ docker-compose -f docker-compose.prod.yml logs -f --tail=20
 #### 1. "Failed to fetch" Errors
 
 ```bash
-# Check CORS configuration
-docker-compose -f docker-compose.prod.yml logs gateway | grep -i cors
+# Check frontend environment variables
+kubectl describe deployment/frontend -n medicine-delivery | grep -A 10 Environment
 
-# Verify environment variables
-docker-compose -f docker-compose.prod.yml exec gateway env | grep ALLOWED
+# Check gateway service status
+kubectl get service gateway-external -n medicine-delivery
 
 # Test API connectivity
-curl -I http://20.106.187.119:8080/catalog/medicines
+curl -I http://34.136.203.92/catalog/medicines
 ```
 
 #### 2. Database Connection Issues
 
 ```bash
-# Check PostgreSQL status
-docker-compose -f docker-compose.prod.yml ps postgres
+# Check PostgreSQL pod status
+kubectl get pods -l app=postgres -n medicine-delivery
 
-# Check database logs
-docker-compose -f docker-compose.prod.yml logs postgres
+# Check PostgreSQL logs
+kubectl logs deployment/postgres -n medicine-delivery
 
-# Test connection
-docker-compose -f docker-compose.prod.yml exec postgres pg_isready -U postgres
+# Test database connection
+kubectl exec deployment/postgres -n medicine-delivery -- pg_isready -U postgres
 ```
 
-#### 3. Service Startup Problems
+#### 3. Pod Startup Problems
 
 ```bash
-# Check all services
-docker-compose -f docker-compose.prod.yml ps
+# Check pod status
+kubectl get pods -n medicine-delivery
 
-# Restart in dependency order
-docker-compose -f docker-compose.prod.yml restart postgres redis rabbitmq
-sleep 10
-docker-compose -f docker-compose.prod.yml restart auth catalog order delivery notification
-sleep 10
-docker-compose -f docker-compose.prod.yml restart gateway web
+# Describe problematic pods
+kubectl describe pod POD_NAME -n medicine-delivery
+
+# Check resource constraints
+kubectl top pods -n medicine-delivery
+kubectl describe nodes
+```
+
+#### 4. Image Pull Issues
+
+```bash
+# Check if images exist in Artifact Registry
+gcloud artifacts docker images list us-central1-docker.pkg.dev/PROJECT_ID/online-medicine
+
+# Verify service account permissions
+kubectl get serviceaccount -n medicine-delivery
+
+# Check pod events
+kubectl get events -n medicine-delivery --sort-by='.metadata.creationTimestamp'
 ```
 
 ### Quick Fixes
 
 ```bash
-# Restart specific service
-docker-compose -f docker-compose.prod.yml restart gateway
+# Restart specific deployment
+kubectl rollout restart deployment/gateway -n medicine-delivery
 
-# Complete system restart
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml up -d
+# Scale deployment
+kubectl scale deployment/order --replicas=2 -n medicine-delivery
 
-# Clean restart (CAUTION: Deletes data)
-docker-compose -f docker-compose.prod.yml down -v
-docker-compose -f docker-compose.prod.yml up --build -d
+# Force pod recreation
+kubectl delete pod POD_NAME -n medicine-delivery
+
+# Update deployment image
+kubectl set image deployment/frontend frontend=us-central1-docker.pkg.dev/PROJECT_ID/online-medicine/frontend:latest -n medicine-delivery
+
+# Check rollout status
+kubectl rollout status deployment/frontend -n medicine-delivery
+```
+
+### Complete System Restart
+
+```bash
+# Scale down all deployments
+kubectl scale deployment --all --replicas=0 -n medicine-delivery
+
+# Wait for pods to terminate
+kubectl wait --for=delete pod --all -n medicine-delivery --timeout=300s
+
+# Scale up infrastructure first
+kubectl scale deployment postgres --replicas=1 -n medicine-delivery
+kubectl scale deployment redis --replicas=1 -n medicine-delivery
+kubectl scale deployment rabbitmq --replicas=1 -n medicine-delivery
+
+# Wait for infrastructure to be ready
+kubectl wait --for=condition=available --timeout=300s deployment/postgres -n medicine-delivery
+kubectl wait --for=condition=available --timeout=300s deployment/redis -n medicine-delivery
+kubectl wait --for=condition=available --timeout=300s deployment/rabbitmq -n medicine-delivery
+
+# Scale up services
+kubectl scale deployment auth --replicas=1 -n medicine-delivery
+kubectl scale deployment catalog --replicas=1 -n medicine-delivery
+kubectl scale deployment order --replicas=2 -n medicine-delivery
+kubectl scale deployment delivery --replicas=2 -n medicine-delivery
+kubectl scale deployment notification --replicas=1 -n medicine-delivery
+
+# Scale up frontend and gateway
+kubectl scale deployment gateway --replicas=1 -n medicine-delivery
+kubectl scale deployment frontend --replicas=1 -n medicine-delivery
 ```
 
 ## Security Features
 
 - JWT Authentication with secure secret keys
-- CORS Protection configured for Azure VM
-- Rate limiting (120 requests per minute)
-- Helmet.js security headers
-- Environment variable security
-- Docker network isolation
+- Kubernetes RBAC and network policies
+- Resource quotas and limits
+- Container image scanning via Google Cloud Build
+- Environment variable security with Kubernetes secrets
+- Pod security contexts and non-root containers
+- Network isolation between services
 - bcrypt password hashing
 
 ## Performance Optimization
@@ -390,96 +543,151 @@ docker-compose -f docker-compose.prod.yml up --build -d
 ### Scaling Options
 
 ```bash
-# Horizontal scaling
-docker-compose -f docker-compose.prod.yml up --scale catalog=2 --scale order=2 -d
+# Horizontal Pod Autoscaling
+kubectl autoscale deployment order --cpu-percent=50 --min=1 --max=10 -n medicine-delivery
+kubectl autoscale deployment catalog --cpu-percent=50 --min=1 --max=5 -n medicine-delivery
 
-# Monitor resources
-docker stats
+# Manual scaling
+kubectl scale deployment order --replicas=3 -n medicine-delivery
+kubectl scale deployment delivery --replicas=3 -n medicine-delivery
 
-# Check performance
-docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+# Check current scaling
+kubectl get hpa -n medicine-delivery
+kubectl top pods -n medicine-delivery
+```
+
+### Resource Management
+
+```yaml
+# Example resource configuration
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+```
+
+### Cluster Autoscaling
+
+```bash
+# Enable cluster autoscaling (if not already enabled)
+gcloud container clusters update $CLUSTER_NAME \
+  --enable-autoscaling \
+  --min-nodes=1 \
+  --max-nodes=10 \
+  --zone=$ZONE
 ```
 
 ## Maintenance
 
 ### Regular Tasks
 
-- **Daily**: Check service health and logs
-- **Weekly**: Database backup and cleanup
+- **Daily**: Check service health and pod status
+- **Weekly**: Database backup and log cleanup
 - **Monthly**: Security updates and performance review
 - **Quarterly**: Full system backup and disaster recovery testing
 
 ### Emergency Procedures
 
 ```bash
-# Emergency stop
-docker-compose -f docker-compose.prod.yml down
+# Emergency scale down
+kubectl scale deployment --all --replicas=0 -n medicine-delivery
 
-# Emergency restart
-docker-compose -f docker-compose.prod.yml restart
+# Emergency database backup
+kubectl exec deployment/postgres -n medicine-delivery -- pg_dump -U postgres medsdb > emergency_backup_$(date +%Y%m%d_%H%M%S).sql
 
-# Emergency backup
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres medsdb > emergency_backup_$(date +%Y%m%d_%H%M%S).sql
+# Emergency cluster access
+gcloud container clusters get-credentials $CLUSTER_NAME --zone=$ZONE
+
+# Check cluster health
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
+### Updates and Upgrades
+
+```bash
+# Update specific service
+gcloud builds submit services/order/ --tag us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/order-service:v2
+kubectl set image deployment/order order=us-central1-docker.pkg.dev/$PROJECT_ID/online-medicine/order-service:v2 -n medicine-delivery
+
+# Rolling update strategy
+kubectl patch deployment order -p '{"spec":{"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxSurge":1,"maxUnavailable":0}}}}' -n medicine-delivery
+
+# Monitor update progress
+kubectl rollout status deployment/order -n medicine-delivery
+
+# Rollback if needed
+kubectl rollout undo deployment/order -n medicine-delivery
 ```
 
 ## Project Structure
 
 ```
 online-medicine-delivery/
-├── deploy-azure.sh                   # Azure deployment script
-├── docker-compose.prod.yml           # Production Docker Compose
-├── docker-compose.yml                # Development Docker Compose
-├── .env                              # Main environment configuration
-├── .env.production                   # Production environment template
-├── gateway/                          # API Gateway service
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── .env                          # Gateway configuration
-│   └── src/index.js                  # Gateway implementation
+├── gcp/                              # Google Cloud Platform deployment files
+│   ├── namespace.yaml                # Kubernetes namespace configuration
+│   ├── postgres.yaml                 # PostgreSQL deployment and service
+│   ├── redis.yaml                    # Redis deployment and service
+│   ├── rabbitmq.yaml                 # RabbitMQ deployment and service
+│   ├── init-db-job.yaml             # Database initialization job
+│   ├── microservices.yaml           # All microservice deployments
+│   ├── gateway.yaml                  # API gateway deployment and service
+│   ├── frontend.yaml                 # Frontend deployment and service
+│   ├── hpa.yaml                      # Horizontal Pod Autoscaler configuration
+│   └── ingress.yaml                  # Ingress configuration (optional)
 ├── services/                         # Microservices
 │   ├── auth/                         # Authentication service
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   ├── .env                      # Auth service config
-│   │   └── src/index.js              # Auth API implementation
+│   │   └── src/index.js              # JWT authentication implementation
 │   ├── catalog/                      # Medicine catalog service
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   ├── .env                      # Catalog service config
 │   │   └── src/index.js              # Catalog API + Redis cache
 │   ├── order/                        # Order management service
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   ├── .env                      # Order service config
-│   │   └── src/index.js              # Order API + RabbitMQ
+│   │   └── src/index.js              # Order API + RabbitMQ events
 │   ├── delivery/                     # Delivery tracking service
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   ├── .env                      # Delivery service config
 │   │   └── src/index.js              # Delivery API + RabbitMQ
 │   └── notification/                 # Notification service
 │       ├── Dockerfile
 │       ├── package.json
-│       ├── .env                      # Notification service config
-│       └── src/index.js              # Notification consumer
+│       └── src/index.js              # Event-driven notifications
+├── gateway/                          # API Gateway service
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/index.js                  # Gateway routing and CORS
 ├── web/                              # React frontend
 │   ├── Dockerfile
 │   ├── package.json
-│   ├── .env                          # Frontend API configuration
 │   ├── vite.config.js
 │   ├── tailwind.config.js
 │   └── src/
 │       ├── App.jsx
 │       ├── main.jsx
-│       ├── api.js                    # API client
+│       ├── api.js                    # API client configuration
 │       ├── components/               # React components
+│       │   └── Navbar.jsx
 │       └── pages/                    # Application pages
+│           ├── Home.jsx
+│           ├── Login.jsx
+│           ├── Register.jsx
+│           ├── Catalog.jsx
+│           ├── Cart.jsx
+│           ├── Orders.jsx
+│           └── AdminDashboard.jsx
 ├── scripts/                          # Database scripts
 │   └── db/init.sql                   # Database schema and seed data
-└── k8s/                              # Kubernetes deployment files
-    ├── gateway-deploy.yaml
-    ├── services-deploy.yaml
-    └── ingress.yaml
+├── docker-compose.yml                # Local development setup
+├── docker-compose.prod.yml           # Production Docker setup (Azure)
+├── GCP_DEPLOYMENT_GUIDE.md          # Detailed GCP deployment guide
+└── README.md                         # This file
 ```
 
 ## Features
@@ -513,30 +721,38 @@ online-medicine-delivery/
 
 ## Contributing
 
-1. Make changes in the azure-deployment branch
-2. Test locally if possible
-3. Deploy and test on Azure VM
-4. Commit and push changes
-5. Document any configuration changes
+1. Make changes in the google-cloud-deployment branch
+2. Test locally using Docker Compose if possible
+3. Build and push container images to Artifact Registry
+4. Deploy and test on GKE cluster
+5. Update Kubernetes manifests as needed
+6. Document any configuration changes
 
 ## Support
 
 For deployment issues:
 
-1. Check service logs: `docker-compose -f docker-compose.prod.yml logs`
-2. Verify service status: `docker-compose -f docker-compose.prod.yml ps`
-3. Test health endpoints: `curl http://20.106.187.119:8080/auth/health`
-4. Check environment configurations
+1. Check pod logs: `kubectl logs deployment/SERVICE_NAME -n medicine-delivery`
+2. Verify pod status: `kubectl get pods -n medicine-delivery`
+3. Test health endpoints: `curl http://34.136.203.92/auth/health`
+4. Check service connectivity: `kubectl get services -n medicine-delivery`
+5. Verify environment configurations: `kubectl describe deployment/SERVICE_NAME -n medicine-delivery`
 
 ---
 
 <div align="center">
-Production Ready Azure Deployment
+Production Ready Google Cloud Deployment
 
-_Access your application at: http://20.106.187.119:3000_
+_Access your application at: http://34.173.223.100_
+
+**Clone Repository**:
+
+```bash
 git clone https://github.com/sahanrashmikaslk/online-medicine-delivery.git
 cd online-medicine-delivery
-git checkout azure-deployment
+git checkout google-cloud-deployment
+```
 
+**For support**: Check pod logs first → `kubectl logs deployment/SERVICE_NAME -n medicine-delivery`
 
-**For support**: Check logs first → `docker-compose -f docker-compose.prod.yml logs`
+</div>
