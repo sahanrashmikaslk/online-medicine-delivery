@@ -135,7 +135,7 @@ jobs:
       - name: Get GKE credentials
         run: |
           gcloud container clusters get-credentials medicine-delivery-cluster \
-            --region us-central1 \
+            --zone us-central1-a \
             --project ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Deploy new images
@@ -143,7 +143,7 @@ jobs:
           SHORT_SHA=${GITHUB_SHA::7}
           TAG=sha-${SHORT_SHA}
           PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
-          
+
           # Update image tags in deployments
           kubectl set image deployment/gateway -n medicine-delivery \
             gateway=gcr.io/$PROJECT_ID/gateway:$TAG
@@ -172,6 +172,6 @@ jobs:
 
       - name: Deployment summary
         run: |
-          echo "🚀 Deployment completed successfully!"
+          echo " Deployment completed successfully!"
           echo "New image tag: sha-${GITHUB_SHA::7}"
           kubectl get pods -n medicine-delivery -o wide
