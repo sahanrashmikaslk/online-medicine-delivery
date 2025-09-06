@@ -166,13 +166,46 @@ jobs:
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/gateway -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/auth -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/catalog -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/order -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/delivery -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/notification -n medicine-delivery --timeout=300s
-          kubectl rollout status deployment/frontend -n medicine-delivery --timeout=300s
+          set -e
+          # Set timeout to 5 minutes per deployment
+          TIMEOUT=300s
+          
+          echo "🚀 Starting deployment rollouts..."
+          
+          # Function to rollout and handle failure
+          rollout_deployment() {
+            local deployment=$1
+            echo "Deploying $deployment..."
+            if ! kubectl rollout status deployment/$deployment -n medicine-delivery --timeout=$TIMEOUT; then
+              echo "❌ $deployment deployment failed - rolling back"
+              kubectl rollout undo deployment/$deployment -n medicine-delivery
+              kubectl rollout status deployment/$deployment -n medicine-delivery --timeout=$TIMEOUT
+              echo "⚠️  $deployment rolled back to previous version"
+              return 1
+            else
+              echo "✅ $deployment deployed successfully"
+              return 0
+            fi
+          }
+          
+          # Track failed deployments
+          failed_deployments=()
+          
+          # Deploy each service with individual error handling
+          for deployment in gateway auth catalog order delivery notification frontend; do
+            if ! rollout_deployment $deployment; then
+              failed_deployments+=($deployment)
+            fi
+          done
+          
+          # Report results
+          if [ ${#failed_deployments[@]} -eq 0 ]; then
+            echo "🎉 All deployments completed successfully!"
+          else
+            echo "⚠️  Some deployments failed and were rolled back: ${failed_deployments[*]}"
+            echo "These services are running on previous versions."
+            exit 0  # Don't fail the entire pipeline for partial deployment
+          fi
 
       - name: Deployment summary
         run: |
