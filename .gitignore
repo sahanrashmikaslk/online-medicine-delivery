@@ -25,3 +25,5 @@ service/auth/
 
 
 .env # Ignore environment variable files
+
+.prev # Ignore previous files
