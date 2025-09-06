@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { api } from '../api'
 import { useNavigate, Link } from 'react-router-dom'
+import GoogleSignIn from '../components/GoogleSignIn'
 
 export default function Login({ setToken }){
   const [formData, setFormData] = useState({
@@ -11,6 +12,15 @@ export default function Login({ setToken }){
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const nav = useNavigate()
+
+  const handleGoogleSuccess = (data) => {
+    setToken(data.token)
+    nav('/catalog')
+  }
+
+  const handleGoogleError = (error) => {
+    setError(error || 'Google sign-in failed')
+  }
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -154,6 +164,25 @@ export default function Login({ setToken }){
                   'Sign In'
                 )}
               </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Sign-In */}
+            <div>
+              <GoogleSignIn 
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                buttonText="Sign in with Google"
+              />
             </div>
 
             {/* Demo Credentials */}

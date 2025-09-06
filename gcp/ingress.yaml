@@ -7,29 +7,120 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: "gce"
     kubernetes.io/ingress.global-static-ip-name: "medicine-delivery-ip"
-    networking.gke.io/managed-certificates: "medicine-delivery-ssl"
-    kubernetes.io/ingress.allow-http: "false"
+    kubernetes.io/ingress.allow-http: "true"
+    # Attach both managed certificates (primary custom domain + nip.io domain)
+    networking.gke.io/managed-certificates: medicine-delivery-ssl,nipio-cert
 spec:
   rules:
-    - host: medicine-delivery.your-domain.com
+    - host: 34.128.184.43.nip.io
       http:
         paths:
-          - path: /api/*
-            pathType: ImplementationSpecific
+          # Specific API prefixes (Prefix type) route to gateway
+          - path: /api/auth
+            pathType: Prefix
             backend:
               service:
                 name: gateway-cluster-ip
                 port:
                   number: 8080
-          - path: /*
-            pathType: ImplementationSpecific
+          - path: /api/catalog
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/delivery
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/notify
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          # Fallback ALL /api to gateway
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          # Frontend for everything else
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-cluster-ip
+                port:
+                  number: 3000
+    - host: medicine-delivery.your-domain.com
+      http:
+        paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/catalog
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/orders
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/delivery
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api/notify
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
             backend:
               service:
                 name: frontend-cluster-ip
                 port:
                   number: 3000
 ---
-# Managed SSL Certificate
+# Managed SSL Certificate (custom domain placeholder)
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
@@ -38,6 +129,16 @@ metadata:
 spec:
   domains:
     - medicine-delivery.your-domain.com
+---
+# Managed SSL Certificate for nip.io domain to enable HTTPS (required for Google OAuth)
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: nipio-cert
+  namespace: medicine-delivery
+spec:
+  domains:
+    - 34.128.184.43.nip.io
 ---
 # Static IP Address (create via gcloud command)
 # gcloud compute addresses create medicine-delivery-ip --global

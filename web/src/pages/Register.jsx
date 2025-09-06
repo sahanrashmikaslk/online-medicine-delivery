@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { api } from '../api'
 import { useNavigate, Link } from 'react-router-dom'
+import GoogleSignIn from '../components/GoogleSignIn'
 
-export default function Register(){
+export default function Register({ setToken }){
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -14,6 +15,16 @@ export default function Register(){
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const nav = useNavigate()
+
+  const handleGoogleSuccess = (data) => {
+    setToken(data.token)
+    setSuccess(true)
+    setTimeout(() => nav('/catalog'), 1500)
+  }
+
+  const handleGoogleError = (error) => {
+    setErrors({ general: error || 'Google sign-in failed' })
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -297,6 +308,25 @@ export default function Register(){
                   'Create Account'
                 )}
               </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            {/* Google Sign-In */}
+            <div>
+              <GoogleSignIn 
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                buttonText="Sign up with Google"
+              />
             </div>
           </form>
         </div>

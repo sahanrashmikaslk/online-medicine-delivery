@@ -83,7 +83,7 @@ export default function App(){
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={!token ? <Login setToken={setToken} /> : <Navigate to="/catalog" />} />
-        <Route path="/register" element={!token ? <Register /> : <Navigate to="/catalog" />} />
+        <Route path="/register" element={!token ? <Register setToken={setToken} /> : <Navigate to="/catalog" />} />
         <Route path="/catalog" element={<Catalog addToCart={addToCart} />} />
         <Route path="/cart" element={<Cart cart={cart} setCart={setCart} updateCartQuantity={updateCartQuantity} removeFromCart={removeFromCart} token={token} />} />
         <Route path="/orders" element={token ? <Orders token={token} /> : <Navigate to="/login" />} />

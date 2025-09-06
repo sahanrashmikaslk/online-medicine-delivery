@@ -57,10 +57,25 @@ const targets = {
 
 // Health
 app.get('/health', (req, res) => res.json({ ok: true, service: 'gateway' }));
+// Duplicate explicit API health for ingress debug
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'gateway', api: true }));
+
+// Temporary request logger to debug routing (can be removed later)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/auth') ) {
+    console.log('GW_REQ', req.method, req.originalUrl);
+  }
+  next();
+});
 
 // Public auth routes
 app.use('/auth', createProxyMiddleware({
   target: targets.auth, changeOrigin: true, pathRewrite: { '^/auth': '' }
+}));
+
+// Support both /auth and /api/auth for ingress compatibility
+app.use('/api/auth', createProxyMiddleware({
+  target: targets.auth, changeOrigin: true, pathRewrite: { '^/api/auth': '' }
 }));
 
 // Catalog: GET is public; writes require ADMIN
@@ -71,6 +86,14 @@ app.get('/catalog/*', createProxyMiddleware({
   target: targets.catalog, changeOrigin: true, pathRewrite: { '^/catalog': '' }
 }));
 
+// Support /api/catalog for ingress compatibility
+app.get('/api/catalog', createProxyMiddleware({
+  target: targets.catalog, changeOrigin: true, pathRewrite: { '^/api/catalog': '' }
+}));
+app.get('/api/catalog/*', createProxyMiddleware({
+  target: targets.catalog, changeOrigin: true, pathRewrite: { '^/api/catalog': '' }
+}));
+
 ['post', 'put', 'patch', 'delete'].forEach(m => {
   app[m]('/catalog', verifyJWT, requireRole('ADMIN'), createProxyMiddleware({
     target: targets.catalog, changeOrigin: true, pathRewrite: { '^/catalog': '' }
@@ -78,11 +101,23 @@ app.get('/catalog/*', createProxyMiddleware({
   app[m]('/catalog/*', verifyJWT, requireRole('ADMIN'), createProxyMiddleware({
     target: targets.catalog, changeOrigin: true, pathRewrite: { '^/catalog': '' }
   }));
+  // Support /api/catalog for ingress compatibility
+  app[m]('/api/catalog', verifyJWT, requireRole('ADMIN'), createProxyMiddleware({
+    target: targets.catalog, changeOrigin: true, pathRewrite: { '^/api/catalog': '' }
+  }));
+  app[m]('/api/catalog/*', verifyJWT, requireRole('ADMIN'), createProxyMiddleware({
+    target: targets.catalog, changeOrigin: true, pathRewrite: { '^/api/catalog': '' }
+  }));
 });
 
 // Orders: authenticated
 app.use('/orders', verifyJWT, createProxyMiddleware({
   target: targets.order, changeOrigin: true, pathRewrite: { '^/orders': '' }
+}));
+
+// Support /api/orders for ingress compatibility
+app.use('/api/orders', verifyJWT, createProxyMiddleware({
+  target: targets.order, changeOrigin: true, pathRewrite: { '^/api/orders': '' }
 }));
 
 // Delivery: GET for any logged-in user, PATCH only ADMIN
@@ -96,9 +131,25 @@ app.patch('/delivery/*', verifyJWT, requireRole('ADMIN'), createProxyMiddleware(
   target: targets.delivery, changeOrigin: true, pathRewrite: { '^/delivery': '' }
 }));
 
+// Support /api/delivery for ingress compatibility
+app.get('/api/delivery', verifyJWT, createProxyMiddleware({
+  target: targets.delivery, changeOrigin: true, pathRewrite: { '^/api/delivery': '' }
+}));
+app.get('/api/delivery/*', verifyJWT, createProxyMiddleware({
+  target: targets.delivery, changeOrigin: true, pathRewrite: { '^/api/delivery': '' }
+}));
+app.patch('/api/delivery/*', verifyJWT, requireRole('ADMIN'), createProxyMiddleware({
+  target: targets.delivery, changeOrigin: true, pathRewrite: { '^/api/delivery': '' }
+}));
+
 // Notifications (if you keep it private)
 app.use('/notify', verifyJWT, createProxyMiddleware({
   target: targets.notification, changeOrigin: true, pathRewrite: { '^/notify': '' }
+}));
+
+// Support /api/notify for ingress compatibility
+app.use('/api/notify', verifyJWT, createProxyMiddleware({
+  target: targets.notification, changeOrigin: true, pathRewrite: { '^/api/notify': '' }
 }));
 
 const port = process.env.PORT || 8080;

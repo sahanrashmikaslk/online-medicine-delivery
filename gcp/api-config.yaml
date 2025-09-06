@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: medicine-delivery
+data:
+  API_BASE_URL: "http://34.128.184.43.nip.io/api"
+  GOOGLE_CLIENT_ID: "1050334836326-2jg080g9dm516nqpql4vh8niocg17itv.apps.googleusercontent.com"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-config
+  namespace: medicine-delivery
+data:
+  config.js: |
+    window.ENV = {
+      API_BASE_URL: 'http://34.128.184.43.nip.io/api',
+      GOOGLE_CLIENT_ID: '1050334836326-2jg080g9dm516nqpql4vh8niocg17itv.apps.googleusercontent.com'
+    };

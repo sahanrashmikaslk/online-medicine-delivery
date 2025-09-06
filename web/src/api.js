@@ -1,4 +1,18 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
+// Resolve API base dynamically so we automatically support HTTPS and any host
+// Priority:
+// 1. Explicit env var VITE_API_BASE or VITE_API_URL
+// 2. window.location.origin + '/api'
+// 3. Fallback hard-coded (should rarely be used)
+const resolveApiBase = () => {
+  const envBase = import.meta?.env?.VITE_API_BASE || import.meta?.env?.VITE_API_URL;
+  if (envBase) return envBase.replace(/\/$/, '');
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin + '/api';
+  }
+  return 'https://34.128.184.43.nip.io/api';
+};
+
+const API_BASE = resolveApiBase();
 
 export async function api(path, method='GET', body, token){
   const res = await fetch(`${API_BASE}${path}`, {

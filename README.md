@@ -17,12 +17,12 @@ _Production Deployment on Google Kubernetes Engine (GKE)_
 
 ## Overview
 
-This is the Google Cloud Platform deployment branch for the Online Medicine Delivery System, specifically configured for production deployment on Google Kubernetes Engine. The application demonstrates modern microservices architecture with Kubernetes orchestration, container images stored in Google Artifact Registry, and event-driven communication.
+This is the Google Cloud Platform deployment branch for the Online Medicine Delivery System, specifically configured for production deployment on Google Kubernetes Engine. The application demonstrates modern microservices architecture with Kubernetes orchestration, integrated Google OAuth authentication, email notifications, and event-driven communication.
 
 ## Live Application
 
-- **Frontend**: http://34.173.223.100
-- **API Gateway**: http://34.136.203.92
+- **Application URL**: https://34.128.184.43.nip.io
+- **API Base URL**: https://34.128.184.43.nip.io/api
 
 ### Admin Credentials
 
@@ -35,13 +35,16 @@ This is the Google Cloud Platform deployment branch for the Online Medicine Deli
 
 - React 18 with Vite build system
 - Tailwind CSS for styling
+- Google Sign-In integration
 - Modern ES6+ JavaScript
 
 ### Backend Services
 
 - Node.js with Express.js framework
-- JSON Web Tokens (JWT) for authentication
+- Google OAuth 2.0 authentication
+- JSON Web Tokens (JWT) for session management
 - bcrypt for password hashing
+- Nodemailer for email notifications
 - Helmet for security headers
 - CORS for cross-origin resource sharing
 
@@ -49,30 +52,30 @@ This is the Google Cloud Platform deployment branch for the Online Medicine Deli
 
 - PostgreSQL 15 - Primary database
 - Redis 7 - Caching layer
-- RabbitMQ 3 - Message broker
+- RabbitMQ 3 - Message broker for event-driven communication
 - Docker - Containerization
 - Google Kubernetes Engine (GKE) - Container orchestration
-- Google Artifact Registry - Container image storage
-- Google Cloud Build - CI/CD pipeline
+- Google Container Registry (GCR) - Container image storage
+- Google Cloud Load Balancer - Ingress controller
 
 ## Architecture
 
 ```
-Internet → Google Cloud Load Balancer
+Internet → Google Cloud Load Balancer (34.128.184.43)
     ↓
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │                          GOOGLE KUBERNETES ENGINE                             │
 │                        Namespace: medicine-delivery                           │
+│                           Ingress Domain: 34.128.184.43.nip.io              │
 │                                                                               │
 │  ┌─────────────────┐                      ┌─────────────────┐                 │
-│  │   React Web     │◄──── LoadBalancer ──►│  API Gateway    │                 │
-│  │   Frontend      │                      │  (Express.js)   │                 │
-│  │ External IP:    │                      │ External IP:    │                 │
-│  │ 34.173.223.100  │                      │ 34.136.203.92   │                 │
+│  │   React Web     │◄──── Ingress ───────►│  API Gateway    │                 │
+│  │   Frontend      │      (nip.io)        │  (Express.js)   │                 │
 │  │                 │                      │                 │                 │
 │  │ • User Interface│                      │ • Authentication│                 │
-│  │ • Nginx Server  │                      │ • Route Proxy   │                 │
-│  │ • Static Assets │                      │ • CORS Handling │                 │
+│  │ • Google OAuth  │                      │ • Route Proxy   │                 │
+│  │ • Nginx Server  │                      │ • CORS Handling │                 │
+│  │ • Static Assets │                      │ • API Routing   │                 │
 │  └─────────────────┘                      └─────────┬───────┘                 │
 │                                                     │                         │
 │                               ┌─────────────────────┼─────────────────────┐   │
@@ -84,8 +87,9 @@ Internet → Google Cloud Load Balancer
 │  │:3001        │    │:3002        │    │:3003        │    │:3004        │     │
 │  │             │    │             │    │             │    │             │     │
 │  │• JWT Auth   │    │• Medicine   │    │• Order Mgmt │    │• Track Deliv│     │
-│  │• User Mgmt  │    │• Inventory  │    │• Cart Logic │    │• Status Upd │     │
-│  │• Login/Reg  │    │• Search API │    │• Payment    │    │• Logistics  │     │
+│  │• Google Auth│    │• Inventory  │    │• Cart Logic │    │• Status Upd │     │
+│  │• Email Svc  │    │• Search API │    │• Payment    │    │• Logistics  │     │
+│  │• User Mgmt  │    │• Redis Cache│    │• RabbitMQ   │    │• RabbitMQ   │     │
 │  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘    └──────┬──────┘     │
 │         │                  │                  │                  │            │
 │         │                  │                  │                  │            │
@@ -99,81 +103,98 @@ Internet → Google Cloud Load Balancer
 ││ClusterIP     │     │ClusterIP     │  │ClusterIP     │  │ClusterIP    │       │
 ││:5432         │     │:6379         │  │:5672,:15672  │  │:3005        │       │
 ││              │     │              │  │              │  │             │       │
-││• User Data   │     │• Session Mgmt│  │• Event Bus   │  │• Email/SMS  │       │
-││• Medicine Cat│     │• Fast Lookup │  │• Async Comm  │  │• Push Notif │       │
-││• Orders      │     │• Performance │  │• Order Events│  │• Real-time  │       │
-││• Delivery    │     │• Cache Layer │  │• Delivery Evt│  │  Updates    │       │
+││• User Data   │     │• Session Mgmt│  │• Event Bus   │  │• Email Notif│       │
+││• Medicine Cat│     │• Fast Lookup │  │• Async Comm  │  │• Order Conf │       │
+││• Orders      │     │• Performance │  │• Order Events│  │• Welcome Msg│       │
+││• Delivery    │     │• Cache Layer │  │• Delivery Evt│  │• Real-time  │       │
+││• OAuth Data  │     │              │  │              │  │  Updates    │       │
 │└──────────────┘     └──────────────┘  └──────────────┘  └─────────────┘       │
 │                                                                               │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow Overview
+### Authentication Flow
 
 ```
-USER REQUEST FLOW:
-┌─────────┐    ┌─────────────-┐    ┌─────────────┐    ┌─────────────┐
-│  User   │───►│   React      │───►│ API Gateway │───►│  Services   │
-│Browser  │    │  Frontend    │    │ LoadBalancer│    │(Auth/Cat/   │
-│         │    │ LoadBalancer │    │34.136.203.92│    │ Ord/Del)    │
-│         │    │34.173.223.100│    │             │    │(ClusterIP)  │
-└─────────┘    └────────────-─┘    └─────────────┘    └─────────────┘
+GOOGLE OAUTH FLOW:
+┌─────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│  User   │───►│   React     │───►│Google OAuth │───►│Auth Service │
+│Browser  │    │  Frontend   │    │Service      │    │(Verify &    │
+│         │    │(Google SDK) │    │(External)   │    │ Create JWT) │
+└─────────┘    └─────────────┘    └─────────────┘    └─────────────┘
                       │                                     │
                       │            ┌─────────────┐          │
                       └───────►───►│ PostgreSQL  │◄─────────┘
-                                   │  Database   │
-                                   │(ClusterIP)  │
+                                   │(User Data & │
+                                   │ OAuth Info) │
                                    └─────────────┘
 
-EVENT-DRIVEN COMMUNICATION:
+EVENT-DRIVEN NOTIFICATIONS:
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│Order Service│───►│  RabbitMQ   │───►│Delivery Srv │───►│Notification │
-│  (Place)    │    │ Message Bus │    │ (Process)   │    │Service      │
-│             │    │(ClusterIP)  │    │             │    │(Notify User)│
+│Order Service│───►│  RabbitMQ   │───►│Auth Service │───►│ Email Sent  │
+│  (Place)    │    │ Message Bus │    │(Send Email) │    │ (Welcome/   │
+│             │    │             │    │             │    │  Confirm)   │
 └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
 ```
 
 ## Kubernetes Service Configuration
 
-### External Services (LoadBalancer)
+### Current Service Architecture
+
+All services now operate through the unified ingress domain with ClusterIP services for internal communication.
 
 ```
-| Service             | Type         | External IP    | Port | Description        |
-| ------------------- | ------------ | -------------- | ---- | ------------------ |
-| frontend-external   | LoadBalancer | 34.173.223.100 | 80   | React Application  |
-| gateway-external    | LoadBalancer | 34.136.203.92  | 80   | API Gateway        |
+| Service              | Type      | Internal Port | External Access | Description         |
+| -------------------- | --------- | ------------- | --------------- | ------------------- |
+| Ingress Controller   | Ingress   | 80/443        | 34.128.184.43   | Main entry point    |
+| frontend-cluster-ip  | ClusterIP | 3000          | via ingress     | React Application   |
+| gateway-cluster-ip   | ClusterIP | 8080          | via ingress     | API Gateway         |
+| auth-cluster-ip      | ClusterIP | 3001          | internal        | Authentication      |
+| catalog-cluster-ip   | ClusterIP | 3002          | internal        | Medicine Catalog    |
+| order-cluster-ip     | ClusterIP | 3003          | internal        | Order Management    |
+| delivery-cluster-ip  | ClusterIP | 3004          | internal        | Delivery Tracking   |
+| notification-cluster-ip | ClusterIP | 3005       | internal        | Email Notifications |
+| postgres-cluster-ip  | ClusterIP | 5432          | internal        | Primary Database    |
+| redis-cluster-ip     | ClusterIP | 6379          | internal        | Cache Layer         |
+| rabbitmq-cluster-ip  | ClusterIP | 5672,15672    | internal        | Message Broker      |
 ```
 
-### Internal Services (ClusterIP)
+### Ingress Configuration
 
-```
-| Service              | Type      | Cluster IP      | Port        | Description         |
-| -------------------- | --------- | --------------- | ----------- | ------------------- |
-| auth-cluster-ip      | ClusterIP | 34.118.230.221  | 3001        | User Authentication |
-| catalog-cluster-ip   | ClusterIP | 34.118.229.98   | 3002        | Medicine Catalog    |
-| order-cluster-ip     | ClusterIP | 34.118.236.5    | 3003        | Order Management    |
-| delivery-cluster-ip  | ClusterIP | 34.118.239.254  | 3004        | Delivery Tracking   |
-| notification-cluster-ip | ClusterIP | 34.118.231.240 | 3005        | Notifications       |
-| postgres-cluster-ip  | ClusterIP | 34.118.228.201  | 5432        | Primary Database    |
-| redis-cluster-ip     | ClusterIP | 34.118.233.128  | 6379        | Cache Layer         |
-| rabbitmq-cluster-ip  | ClusterIP | 34.118.235.246  | 5672,15672  | Message Broker      |
+```yaml
+# Current ingress setup
+spec:
+  rules:
+    - host: 34.128.184.43.nip.io
+      http:
+        paths:
+          - path: /api/*
+            backend:
+              service:
+                name: gateway-cluster-ip
+                port: 8080
+          - path: /*
+            backend:
+              service:
+                name: frontend-cluster-ip
+                port: 3000
 ```
 
 ### Pod Deployments
 
 ```
-| Deployment    | Replicas | Image Registry                                    | Status  |
-| ------------- | -------- | ------------------------------------------------- | ------- |
-| auth          | 1        | us-central1-docker.pkg.dev/.../auth-service      | Running |
-| catalog       | 1        | us-central1-docker.pkg.dev/.../catalog-service   | Running |
-| order         | 2        | us-central1-docker.pkg.dev/.../order-service     | Running |
-| delivery      | 2        | us-central1-docker.pkg.dev/.../delivery-service  | Running |
-| notification  | 1        | us-central1-docker.pkg.dev/.../notification-service | Running |
-| frontend      | 1        | us-central1-docker.pkg.dev/.../frontend          | Running |
-| gateway       | 1        | us-central1-docker.pkg.dev/.../gateway-service   | Running |
-| postgres      | 1        | postgres:15                                       | Running |
-| redis         | 1        | redis:7-alpine                                    | Running |
-| rabbitmq      | 1        | rabbitmq:3-management-alpine                      | Running |
+| Deployment    | Replicas | Image Registry                          | Status  | Features               |
+| ------------- | -------- | --------------------------------------- | ------- | ---------------------- |
+| auth          | 1        | gcr.io/.../auth-service                | Running | JWT + Google OAuth     |
+| catalog       | 1        | gcr.io/.../catalog-service             | Running | Medicine inventory     |
+| order         | 2        | gcr.io/.../order-service               | Running | Order processing       |
+| delivery      | 2        | gcr.io/.../delivery-service            | Running | Delivery tracking      |
+| notification  | 1        | gcr.io/.../notification-service        | Running | Email notifications    |
+| frontend      | 2        | gcr.io/.../frontend                    | Running | React + Google Sign-In |
+| gateway       | 1        | gcr.io/.../gateway-service             | Running | API routing            |
+| postgres      | 1        | postgres:15                            | Running | Primary database       |
+| redis         | 1        | redis:7-alpine                         | Running | Caching layer          |
+| rabbitmq      | 1        | rabbitmq:3-management-alpine           | Running | Message broker         |
 ```
 
 ## Quick Deployment
@@ -293,35 +314,73 @@ env:
 ### Authentication
 
 ```bash
+# Health check
+curl https://34.128.184.43.nip.io/api/auth/health
+
 # Register new user
-curl -X POST http://34.136.203.92/auth/register \
+curl -X POST http://34.128.184.43.nip.io/api/auth/register \
+curl -X POST https://34.128.184.43.nip.io/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "SecurePass123", "role": "CUSTOMER"}'
 
 # Login user
-curl -X POST http://34.136.203.92/auth/login \
+curl -X POST http://34.128.184.43.nip.io/api/auth/login \
+curl -X POST https://34.128.184.43.nip.io/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@meds.com", "password": "Admin@123"}'
+
+# Google OAuth endpoint (requires Google credential token)
+curl -X POST http://34.128.184.43.nip.io/api/auth/google \
+curl -X POST https://34.128.184.43.nip.io/api/auth/google \
+  -H "Content-Type: application/json" \
+  -d '{"credential": "GOOGLE_ID_TOKEN", "role": "CUSTOMER"}'
 ```
 
 ### Medicine Catalog
 
 ```bash
 # Get all medicines
-curl http://34.136.203.92/catalog/medicines
+curl http://34.128.184.43.nip.io/api/catalog/medicines
+curl https://34.128.184.43.nip.io/api/catalog/medicines
 
 # Search medicines
-curl "http://34.136.203.92/catalog/medicines?search=aspirin"
+curl "http://34.128.184.43.nip.io/api/catalog/medicines?search=aspirin"
+curl "https://34.128.184.43.nip.io/api/catalog/medicines?search=aspirin"
+
+# Get specific medicine
+curl http://34.128.184.43.nip.io/api/catalog/medicines/1
+curl https://34.128.184.43.nip.io/api/catalog/medicines/1
 ```
 
 ### Order Management
 
 ```bash
 # Create order (requires auth token)
-curl -X POST http://34.136.203.92/orders \
+curl -X POST http://34.128.184.43.nip.io/api/orders \
+curl -X POST https://34.128.184.43.nip.io/api/orders \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"items": [{"medicine_id": 1, "quantity": 2}], "address": "123 Main St"}'
+
+# Get user orders
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  https://34.128.184.43.nip.io/api/orders
+```
+
+### Email Services
+
+```bash
+# Send custom email (internal service call)
+curl -X POST http://34.128.184.43.nip.io/api/auth/send-email \
+curl -X POST https://34.128.184.43.nip.io/api/auth/send-email \
+  -H "Content-Type: application/json" \
+  -d '{"to": "user@example.com", "subject": "Test", "html": "<h1>Hello</h1>"}'
+
+# Send order confirmation
+curl -X POST http://34.128.184.43.nip.io/api/auth/send-order-confirmation \
+curl -X POST https://34.128.184.43.nip.io/api/auth/send-order-confirmation \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "customerName": "John", "orderDetails": {"orderId": "123", "items": [], "total": "100", "deliveryAddress": "123 Main St"}}'
 ```
 
 ## Database Management
@@ -371,15 +430,25 @@ kubectl exec -i deployment/postgres -n medicine-delivery -- psql -U postgres med
 ### Health Checks
 
 ```bash
-# Check service health
-curl http://34.136.203.92/auth/health
-curl http://34.136.203.92/catalog/health
+# Check all service health endpoints
+curl https://34.128.184.43.nip.io/api/auth/health
+curl https://34.128.184.43.nip.io/api/catalog/health
+curl https://34.128.184.43.nip.io/api/orders/health
+curl https://34.128.184.43.nip.io/api/delivery/health
+curl https://34.128.184.43.nip.io/api/notification/health
+
+# Check frontend access
+curl -I http://34.128.184.43.nip.io
+curl -I https://34.128.184.43.nip.io
 
 # Check pod status
 kubectl get pods -n medicine-delivery
 
 # Check service endpoints
 kubectl get services -n medicine-delivery
+
+# Check ingress status
+kubectl get ingress -n medicine-delivery
 
 # Check database connectivity
 kubectl exec deployment/postgres -n medicine-delivery -- pg_isready -U postgres
@@ -430,11 +499,16 @@ kubectl describe hpa order-hpa -n medicine-delivery
 # Check frontend environment variables
 kubectl describe deployment/frontend -n medicine-delivery | grep -A 10 Environment
 
-# Check gateway service status
-kubectl get service gateway-external -n medicine-delivery
+# Check ingress status
+kubectl get ingress -n medicine-delivery
 
-# Test API connectivity
-curl -I http://34.136.203.92/catalog/medicines
+# Test API connectivity through ingress
+curl -I http://34.128.184.43.nip.io/api/catalog/medicines
+curl -I https://34.128.184.43.nip.io/api/catalog/medicines
+curl -I https://34.128.184.43.nip.io/api/catalog/medicines
+
+# Check if services are accessible internally
+kubectl exec deployment/frontend -n medicine-delivery -- curl http://gateway-cluster-ip:8080/catalog/medicines
 ```
 
 #### 2. Database Connection Issues
@@ -699,30 +773,37 @@ online-medicine-delivery/
 
 ### Customer Features
 
-- User registration and authentication
-- Medicine search and filtering
-- Shopping cart management
-- Order placement and tracking
+- User registration with email/password or Google Sign-In
+- Secure Google OAuth 2.0 authentication
+- Medicine search and filtering with Redis caching
+- Shopping cart management with persistent sessions
+- Order placement with email confirmations
+- Order tracking and status updates
+- Welcome emails for new registrations
 - Responsive design for mobile and desktop
-- Real-time order status updates
+- Real-time order status updates via RabbitMQ events
 
 ### Admin Features
 
-- Admin dashboard with analytics
+- Admin dashboard with analytics and order overview
 - Medicine inventory management (CRUD operations)
 - Order management with status updates
-- Delivery status tracking
-- Stock management with alerts
-- User management
+- Delivery status tracking and management
+- Stock management with low stock alerts
+- User management and role assignment
+- Email notification management
 
 ### System Features
 
-- High performance with Redis caching
-- Event-driven architecture for loose coupling
-- Horizontal scalability
-- Health checks and monitoring
-- Security hardening
-- Containerized deployment
+- High performance with Redis caching layer
+- Event-driven architecture with RabbitMQ
+- Google OAuth 2.0 integration for secure authentication
+- Automated email notifications (welcome, order confirmation)
+- Horizontal scalability with Kubernetes
+- Health checks and comprehensive monitoring
+- Security hardening with Helmet and CORS
+- Containerized deployment with Docker
+- Ingress-based routing for unified domain access
 
 ## Contributing
 
@@ -739,7 +820,7 @@ For deployment issues:
 
 1. Check pod logs: `kubectl logs deployment/SERVICE_NAME -n medicine-delivery`
 2. Verify pod status: `kubectl get pods -n medicine-delivery`
-3. Test health endpoints: `curl http://34.136.203.92/auth/health`
+3. Unified domain health endpoint: `curl https://34.128.184.43.nip.io/api/auth/health`
 4. Check service connectivity: `kubectl get services -n medicine-delivery`
 5. Verify environment configurations: `kubectl describe deployment/SERVICE_NAME -n medicine-delivery`
 
@@ -748,7 +829,7 @@ For deployment issues:
 <div align="center">
 Production Ready Google Cloud Deployment
 
-_Access your application at: http://34.173.223.100_
+_Access your application at: https://34.128.184.43.nip.io_
 
 **Clone Repository**:
 
@@ -757,6 +838,8 @@ git clone https://github.com/sahanrashmikaslk/online-medicine-delivery.git
 cd online-medicine-delivery
 git checkout google-cloud-deployment
 ```
+
+**Quick Setup Google OAuth**: Add `https://34.128.184.43.nip.io` (and optionally keep `http://` variant) to your Google OAuth origins
 
 **For support**: Check pod logs first → `kubectl logs deployment/SERVICE_NAME -n medicine-delivery`
 
