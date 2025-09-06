@@ -10,6 +10,16 @@ app.use(express.json());
 app.use(helmet());
 app.use(cors());
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, {
+    headers: req.headers,
+    body: req.body,
+    params: req.params
+  });
+  next();
+});
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 let channel;
@@ -97,6 +107,14 @@ app.patch('/:orderId(\\d+)', async (req,res)=>{
   }
 });
 
+
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Express error:', err);
+  res.status(500).json({ error: 'Internal server error', details: err.message });
+});
 
 const port = process.env.PORT || 3004;
 app.listen(port, ()=> console.log(`Delivery service on ${port}`));
