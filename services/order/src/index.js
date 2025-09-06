@@ -89,8 +89,35 @@ app.post('/', async (req,res)=>{
         [item.quantity, Number(item.medicine_id)]);
     }
 
-    // publish event
-    const evt = { type: 'order.created', orderId: o.rows[0].id, userId: user.sub, address: data.address, total };
+    // publish event with customer details for email
+    const customerInfo = await pool.query('SELECT email, name FROM users WHERE id = $1', [user.sub]);
+    const customer = customerInfo.rows[0] || { email: user.email, name: user.name };
+    
+    // Get order items for email
+    const orderItems = await Promise.all(data.items.map(async (item) => {
+      const med = meds.rows.find(r => r.id === Number(item.medicine_id));
+      return {
+        name: med.name || `Medicine ${med.id}`,
+        quantity: item.quantity,
+        price: Number(med.price).toFixed(2)
+      };
+    }));
+    
+    const evt = { 
+      type: 'order.created', 
+      orderId: o.rows[0].id, 
+      userId: user.sub, 
+      address: data.address, 
+      total: total.toFixed(2),
+      customerEmail: customer.email,
+      customerName: customer.name || customer.email.split('@')[0],
+      orderDetails: {
+        orderId: o.rows[0].id,
+        items: orderItems,
+        total: total.toFixed(2),
+        deliveryAddress: data.address
+      }
+    };
     if (channel) channel.publish('events', 'order.created', Buffer.from(JSON.stringify(evt)), { persistent: true });
 
     res.json({ order: o.rows[0] });

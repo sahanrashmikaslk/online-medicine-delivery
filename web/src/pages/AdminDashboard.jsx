@@ -6,6 +6,8 @@ const STATUSES = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED']
 export default function AdminDashboard({ token }){
   const [meds, setMeds] = useState([])
   const [orders, setOrders] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [form, setForm] = useState({ name:'', description:'', price:'', stock:'' })
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
@@ -27,8 +29,20 @@ export default function AdminDashboard({ token }){
     const r = await api('/orders/all', 'GET', undefined, token)
     setOrders(r)
   }
+  
+  async function loadNotifications(){
+    try {
+      const r = await api('/notify/notifications', 'GET', undefined, token)
+      setNotifications(r)
+      
+      const countR = await api('/notify/notifications/unread/count', 'GET', undefined, token)
+      setUnreadCount(countR.count)
+    } catch (error) {
+      console.error('Failed to load notifications:', error)
+    }
+  }
 
-  useEffect(()=>{ loadMeds(); loadOrders(); }, [])
+  useEffect(()=>{ loadMeds(); loadOrders(); loadNotifications(); }, [])
 
   async function createMed(e){
     e.preventDefault()
@@ -91,9 +105,27 @@ export default function AdminDashboard({ token }){
     }
   }
 
+  async function markNotificationRead(notificationId) {
+    try {
+      await api(`/notify/notifications/${notificationId}/read`, 'PATCH', undefined, token)
+      setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, read: true} : n))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-8">
-      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        {unreadCount > 0 && (
+          <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm">
+            {unreadCount} new notification{unreadCount !== 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+      
       {msg && (
         <div className={`p-3 rounded-lg border ${
           msgType === 'error' 
@@ -114,6 +146,52 @@ export default function AdminDashboard({ token }){
           </div>
         </div>
       )}
+
+      {/* Notifications */}
+      <section className="bg-white rounded-xl border p-4 shadow">
+        <h2 className="text-xl font-semibold mb-3">Recent Notifications</h2>
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No notifications yet</p>
+          ) : (
+            notifications.slice(0, 10).map(notification => (
+              <div 
+                key={notification.id} 
+                className={`p-3 rounded border cursor-pointer transition-colors ${
+                  notification.read 
+                    ? 'bg-gray-50 border-gray-200' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}
+                onClick={() => !notification.read && markNotificationRead(notification.id)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${notification.read ? 'text-gray-700' : 'text-blue-700'}`}>
+                        {notification.title}
+                      </span>
+                      {!notification.read && (
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notification.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    notification.type === 'order' 
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-orange-100 text-orange-700'
+                  }`}>
+                    {notification.type}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       {/* Medicines */}
       <section className="bg-white rounded-xl border p-4 shadow">
