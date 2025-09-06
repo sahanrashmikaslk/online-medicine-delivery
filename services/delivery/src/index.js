@@ -47,6 +47,16 @@ connectMQ().catch(console.error);
 
 app.get('/health', (req,res)=>res.json({ok:true, service:'delivery'}));
 
+// Debug endpoint
+app.post('/debug', (req, res) => {
+  console.log('Debug endpoint called:', {
+    body: req.body,
+    headers: req.headers,
+    rawBody: req.rawBody
+  });
+  res.json({ received: req.body, headers: req.headers });
+});
+
 app.get('/:orderId(\\d+)', async (req,res)=>{
   const id = Number(req.params.orderId);
   const r = await pool.query(
