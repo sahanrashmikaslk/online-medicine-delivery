@@ -175,6 +175,13 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: NODE_ENV
+            - name: DATABASE_URL
+              value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: database-password
             - name: RABBITMQ_URL
               value: "amqp://admin:rabbitpass@rabbitmq-cluster-ip:5672"
             - name: RABBITMQ_PASSWORD

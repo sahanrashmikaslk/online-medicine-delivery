@@ -341,7 +341,7 @@ export default function Orders({ token, user }){
                       <span>•</span>
                       {isAdmin && (
                         <>
-                          <span>Customer ID: {order.user_id}</span>
+                          <span>Customer: {order.customer_name || order.customer_email || `ID: ${order.user_id}`}</span>
                           <span>•</span>
                         </>
                       )}

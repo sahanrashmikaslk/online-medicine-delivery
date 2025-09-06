@@ -158,8 +158,27 @@ app.get('/all', async (req,res)=>{
     const user = getUser(req);
     if (!user) return res.status(401).json({error:'unauthorized'});
     if (user.role !== 'ADMIN') return res.status(403).json({error:'forbidden'});
-    const r = await pool.query('SELECT * FROM orders ORDER BY id DESC');
-    res.json(r.rows);
+    
+    // Get all orders with customer information
+    const orders = await pool.query(`
+      SELECT o.*, u.name as customer_name, u.email as customer_email 
+      FROM orders o 
+      LEFT JOIN users u ON o.user_id = u.id 
+      ORDER BY o.id DESC
+    `);
+    
+    // Get order items for each order
+    const ordersWithDetails = await Promise.all(orders.rows.map(async (order) => {
+      const items = await pool.query(`
+        SELECT oi.*, m.name as medicine_name 
+        FROM order_items oi 
+        LEFT JOIN medicines m ON oi.medicine_id = m.id 
+        WHERE oi.order_id = $1
+      `, [order.id]);
+      return { ...order, items: items.rows };
+    }));
+    
+    res.json(ordersWithDetails);
   }catch(e){
     console.error(e);
     res.status(500).json({error:'internal'});
