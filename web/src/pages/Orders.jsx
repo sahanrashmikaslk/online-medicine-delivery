@@ -2,28 +2,57 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
-export default function Orders({ token }){
+const STATUSES = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED']
+
+export default function Orders({ token, user }){
   const nav = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+  const [msgType, setMsgType] = useState('success')
+
+  const isAdmin = user?.role === 'ADMIN'
 
   useEffect(() => {
     if (!token) return nav('/login')
     load()
   }, [token])
 
+  // Auto-clear messages after 5 seconds
+  useEffect(() => {
+    if (msg) {
+      const timer = setTimeout(() => setMsg(''), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [msg])
+
   async function load(){
     setLoading(true)
     setError('')
     try {
-      const data = await api('/orders', 'GET', null, token)
+      // Load all orders for admin, or user's orders for regular users
+      const endpoint = isAdmin ? '/orders/all' : '/orders'
+      const data = await api(endpoint, 'GET', null, token)
       setOrders(data)
     } catch (err) {
       setError('Failed to load orders. Please try again.')
       console.error('Orders error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function updateDelivery(orderId, status){
+    try {
+      await api(`/delivery/${orderId}`,'PATCH',{ status }, token)
+      setMsg(`Order ${orderId} status updated to ${status}`)
+      setMsgType('success')
+      // Refresh orders list
+      await load()
+    } catch(err) {
+      setMsg(`Failed to update delivery: ${err.message}`)
+      setMsgType('error')
     }
   }
 
@@ -137,19 +166,26 @@ export default function Orders({ token }){
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">No orders yet</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            {isAdmin ? 'No orders in system' : 'No orders yet'}
+          </h2>
           <p className="text-gray-600 mb-8 max-w-md mx-auto">
-            You haven't placed any orders yet. Start shopping to see your order history here!
+            {isAdmin 
+              ? 'No customers have placed orders yet. Orders will appear here when customers start shopping.'
+              : 'You haven\'t placed any orders yet. Start shopping to see your order history here!'
+            }
           </p>
-          <button 
-            onClick={() => nav('/catalog')}
-            className="inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            Start Shopping
-          </button>
+          {!isAdmin && (
+            <button 
+              onClick={() => nav('/catalog')}
+              className="inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              Start Shopping
+            </button>
+          )}
         </div>
       </div>
     )
@@ -159,16 +195,45 @@ export default function Orders({ token }){
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Order History</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          {isAdmin ? 'All Orders' : 'Order History'}
+        </h1>
         <p className="text-gray-600">
-          Track and manage your medicine orders
+          {isAdmin 
+            ? 'Monitor and manage all customer orders'
+            : 'Track and manage your medicine orders'
+          }
         </p>
       </div>
+
+      {/* Success/Error Messages */}
+      {msg && (
+        <div className={`mb-6 p-3 rounded-lg border ${
+          msgType === 'error' 
+            ? 'bg-red-50 border-red-200 text-red-800' 
+            : 'bg-green-50 border-green-200 text-green-800'
+        }`}>
+          <div className="flex items-center">
+            {msgType === 'error' ? (
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {msg}
+          </div>
+        </div>
+      )}
 
       {/* Orders List */}
       <div className="space-y-6">
         {orders.map(order => {
-          const orderTotal = order.items?.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0) || 0
+          // Calculate total from total_amount field or items if available
+          const orderTotal = order.total_amount ? Number(order.total_amount) : 
+            (order.items?.reduce((sum, item) => sum + (Number(item.price) * item.quantity), 0) || 0)
           
           return (
             <div key={order.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -182,17 +247,42 @@ export default function Orders({ token }){
                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                       <span>Placed on {formatDate(order.created_at)}</span>
                       <span>•</span>
+                      {isAdmin && (
+                        <>
+                          <span>Customer ID: {order.user_id}</span>
+                          <span>•</span>
+                        </>
+                      )}
                       <span>{order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}</span>
                       <span>•</span>
-                      <span className="font-semibold text-gray-900">Rs.{orderTotal.toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900">Rs. {orderTotal.toFixed(2)}</span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center">
+                  <div className="flex items-center space-x-3">
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(order.status)}`}>
                       {getStatusIcon(order.status)}
                       <span className="ml-2 capitalize">{order.status || 'Unknown'}</span>
                     </span>
+                    
+                    {/* Admin delivery status update */}
+                    {isAdmin && (
+                      <select 
+                        className="border rounded px-3 py-1 text-sm bg-white"
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            updateDelivery(order.id, e.target.value)
+                            e.target.value = '' // Reset select
+                          }
+                        }}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Update Status</option>
+                        {STATUSES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
               </div>
@@ -216,8 +306,8 @@ export default function Orders({ token }){
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-gray-900">Rs.{(Number(item.price) * item.quantity).toFixed(2)}</div>
-                          <div className="text-sm text-gray-600">Rs.{Number(item.price).toFixed(2)} each</div>
+                          <div className="font-semibold text-gray-900">Rs. {(Number(item.price) * item.quantity).toFixed(2)}</div>
+                          <div className="text-sm text-gray-600">Rs. {Number(item.price).toFixed(2)} each</div>
                         </div>
                       </div>
                     ))}
@@ -226,7 +316,7 @@ export default function Orders({ token }){
               )}
 
               {/* Delivery Address */}
-              {order.address && (
+              {(order.delivery_address || order.address) && (
                 <div className="px-6 pb-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2">Delivery Address</h4>
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -235,7 +325,7 @@ export default function Orders({ token }){
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <p className="text-gray-700">{order.address}</p>
+                      <p className="text-gray-700">{order.delivery_address || order.address}</p>
                     </div>
                   </div>
                 </div>
@@ -245,18 +335,20 @@ export default function Orders({ token }){
         })}
       </div>
 
-      {/* Continue Shopping */}
-      <div className="mt-12 text-center">
-        <button 
-          onClick={() => nav('/catalog')}
-          className="inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
-        >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          Continue Shopping
-        </button>
-      </div>
+      {/* Continue Shopping - only for regular users */}
+      {!isAdmin && (
+        <div className="mt-12 text-center">
+          <button 
+            onClick={() => nav('/catalog')}
+            className="inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            Continue Shopping
+          </button>
+        </div>
+      )}
     </div>
   )
 }

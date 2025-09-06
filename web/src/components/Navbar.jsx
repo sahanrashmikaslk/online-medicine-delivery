@@ -1,11 +1,33 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { api } from '../api'
 
 export default function Navbar({ token, user, onLogout, cartCount }){
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const location = useLocation()
 
   const isActivePath = (path) => location.pathname === path
+
+  // Load notification count for admin users
+  useEffect(() => {
+    async function loadNotificationCount() {
+      if (token && user?.role === 'ADMIN') {
+        try {
+          const countData = await api('/notify/notifications/unread/count', 'GET', undefined, token)
+          setUnreadNotifications(countData.count || 0)
+        } catch (error) {
+          console.error('Failed to load notification count:', error)
+        }
+      }
+    }
+    
+    loadNotificationCount()
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(loadNotificationCount, 30000)
+    return () => clearInterval(interval)
+  }, [token, user])
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
@@ -23,64 +45,103 @@ export default function Navbar({ token, user, onLogout, cartCount }){
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            <Link 
-              to="/catalog" 
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActivePath('/catalog') 
-                  ? 'text-blue-600 bg-blue-50' 
-                  : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-              }`}
-            >
-              Browse Medicines
-            </Link>
-            
-            {token && (
-              <Link 
-                to="/orders" 
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActivePath('/orders') 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                }`}
-              >
-                My Orders
-              </Link>
+            {/* Show Browse Medicines and My Orders only for non-admin users */}
+            {user?.role !== 'ADMIN' && (
+              <>
+                <Link 
+                  to="/catalog" 
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActivePath('/catalog') 
+                      ? 'text-blue-600 bg-blue-50' 
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Browse Medicines
+                </Link>
+                
+                {token && (
+                  <Link 
+                    to="/orders" 
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActivePath('/orders') 
+                        ? 'text-blue-600 bg-blue-50' 
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    My Orders
+                  </Link>
+                )}
+              </>
             )}
             
+            {/* Admin-specific navigation */}
             {token && user?.role === 'ADMIN' && (
-              <Link 
-                to="/admin" 
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActivePath('/admin') 
-                    ? 'text-purple-600 bg-purple-50' 
-                    : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50'
-                }`}
-              >
-                <svg className="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Admin Panel
-              </Link>
+              <>
+                <Link 
+                  to="/orders" 
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActivePath('/orders') 
+                      ? 'text-blue-600 bg-blue-50' 
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                  }`}
+                >
+                  All Orders
+                </Link>
+                
+                <Link 
+                  to="/admin" 
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActivePath('/admin') 
+                      ? 'text-purple-600 bg-purple-50' 
+                      : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50'
+                  }`}
+                >
+                  <svg className="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Admin Panel
+                </Link>
+              </>
             )}
           </div>
 
           {/* Cart & User Actions */}
           <div className="flex items-center space-x-4">
-            {/* Cart Icon */}
-            <Link 
-              to="/cart" 
-              className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5H21M7 13v6a1 1 0 001 1h8a1 1 0 001-1v-6m-9 0V9a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H16a1 1 0 011 1v3" />
-              </svg>
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
+            {/* Notification Bell for Admin */}
+            {token && user?.role === 'ADMIN' && (
+              <Link 
+                to="/admin" 
+                className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+                title="Notifications"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-4-4V8a6 6 0 10-12 0v5l-4 4h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {/* Cart Icon - only show for non-admin users */}
+            {user?.role !== 'ADMIN' && (
+              <Link 
+                to="/cart" 
+                className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5H21M7 13v6a1 1 0 001 1h8a1 1 0 001-1v-6m-9 0V9a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H16a1 1 0 011 1v3" />
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* User Menu */}
             {!token ? (
@@ -144,35 +205,53 @@ export default function Navbar({ token, user, onLogout, cartCount }){
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 py-4 space-y-2">
-            <Link 
-              to="/catalog" 
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Browse Medicines
-            </Link>
-            {token && (
-              <Link 
-                to="/orders" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                My Orders
-              </Link>
-            )}
-            {token && user?.role === 'ADMIN' && (
-              <Link 
-                to="/admin" 
-                className="block px-3 py-2 rounded-md text-base font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Admin Panel
-              </Link>
+            {/* Show different navigation based on user role */}
+            {user?.role !== 'ADMIN' ? (
+              <>
+                <Link 
+                  to="/catalog" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Browse Medicines
+                </Link>
+                {token && (
+                  <Link 
+                    to="/orders" 
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    My Orders
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link 
+                  to="/orders" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  All Orders
+                </Link>
+                <Link 
+                  to="/admin" 
+                  className="block px-3 py-2 rounded-md text-base font-medium text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Admin Panel
+                </Link>
+              </>
             )}
             {token && (
               <div className="border-t pt-4 mt-4">
                 <div className="px-3 py-2 text-sm text-gray-500">
                   Signed in as {user?.email}
+                  {user?.role === 'ADMIN' && unreadNotifications > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                      {unreadNotifications} new notifications
+                    </span>
+                  )}
                 </div>
                 <button 
                   onClick={() => {

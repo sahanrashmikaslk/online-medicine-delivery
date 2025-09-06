@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../api'
 
-const STATUSES = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED']
-
 export default function AdminDashboard({ token }){
   const [meds, setMeds] = useState([])
-  const [orders, setOrders] = useState([])
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [form, setForm] = useState({ name:'', description:'', price:'', stock:'' })
@@ -25,10 +22,6 @@ export default function AdminDashboard({ token }){
     const r = await api('/catalog/medicines')
     setMeds(r)
   }
-  async function loadOrders(){
-    const r = await api('/orders/all', 'GET', undefined, token)
-    setOrders(r)
-  }
   
   async function loadNotifications(){
     try {
@@ -42,7 +35,7 @@ export default function AdminDashboard({ token }){
     }
   }
 
-  useEffect(()=>{ loadMeds(); loadOrders(); loadNotifications(); }, [])
+  useEffect(()=>{ loadMeds(); loadNotifications(); }, [])
 
   async function createMed(e){
     e.preventDefault()
@@ -92,17 +85,6 @@ export default function AdminDashboard({ token }){
     if(!confirm('Delete this medicine?')) return
     await api(`/catalog/medicines/${id}`,'DELETE',undefined, token)
     await loadMeds()
-  }
-
-  async function updateDelivery(orderId, status){
-    try {
-      await api(`/delivery/${orderId}`,'PATCH',{ status }, token)
-      setMsg(`Order ${orderId} status updated to ${status}`)
-      setMsgType('success')
-    } catch(err) {
-      setMsg(`Failed to update delivery: ${err.message}`)
-      setMsgType('error')
-    }
   }
 
   async function markNotificationRead(notificationId) {
@@ -229,27 +211,6 @@ export default function AdminDashboard({ token }){
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      {/* Orders */}
-      <section className="bg-white rounded-xl border p-4 shadow">
-        <h2 className="text-xl font-semibold mb-3">All Orders</h2>
-        <div className="space-y-3">
-          {orders.map(o=>(
-            <div key={o.id} className="p-3 border rounded flex items-center justify-between">
-              <div>
-                <div className="font-semibold">Order #{o.id}</div>
-                <div className="text-gray-600 text-sm">User: {o.user_id} • Total: ${Number(o.total).toFixed(2)} • Status: {o.status}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <select className="border rounded px-2 py-1" onChange={(e)=>updateDelivery(o.id, e.target.value)} defaultValue="">
-                  <option value="" disabled>Set delivery status</option>
-                  {STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
     </div>
