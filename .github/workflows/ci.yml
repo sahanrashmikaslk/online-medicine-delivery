@@ -114,8 +114,64 @@ jobs:
       - name: Summary
         run: echo "Built & pushed images with tag $IMAGE_TAG"
 
-  # Placeholder for future deploy job
-  # deploy:
-  #   needs: docker-images
-  #   runs-on: ubuntu-latest
-  #   steps: [...]
+  deploy:
+    name: Deploy to GKE
+    runs-on: ubuntu-latest
+    needs: docker-images
+    if: github.ref == 'refs/heads/google-cloud-deployment'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Get GKE credentials
+        run: |
+          gcloud container clusters get-credentials medicine-delivery-cluster \
+            --region us-central1 \
+            --project ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Deploy new images
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+          TAG=sha-${SHORT_SHA}
+          PROJECT_ID=${{ secrets.GCP_PROJECT_ID }}
+          
+          # Update image tags in deployments
+          kubectl set image deployment/gateway -n medicine-delivery \
+            gateway=gcr.io/$PROJECT_ID/gateway:$TAG
+          kubectl set image deployment/auth -n medicine-delivery \
+            auth=gcr.io/$PROJECT_ID/auth:$TAG
+          kubectl set image deployment/catalog -n medicine-delivery \
+            catalog=gcr.io/$PROJECT_ID/catalog:$TAG
+          kubectl set image deployment/order -n medicine-delivery \
+            order=gcr.io/$PROJECT_ID/order:$TAG
+          kubectl set image deployment/delivery -n medicine-delivery \
+            delivery=gcr.io/$PROJECT_ID/delivery:$TAG
+          kubectl set image deployment/notification -n medicine-delivery \
+            notification=gcr.io/$PROJECT_ID/notification:$TAG
+          kubectl set image deployment/frontend -n medicine-delivery \
+            frontend=gcr.io/$PROJECT_ID/web:$TAG
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/gateway -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/auth -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/catalog -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/order -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/delivery -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/notification -n medicine-delivery --timeout=300s
+          kubectl rollout status deployment/frontend -n medicine-delivery --timeout=300s
+
+      - name: Deployment summary
+        run: |
+          echo "🚀 Deployment completed successfully!"
+          echo "New image tag: sha-${GITHUB_SHA::7}"
+          kubectl get pods -n medicine-delivery -o wide
