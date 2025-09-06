@@ -48,10 +48,22 @@ app.get('/:orderId(\\d+)', async (req,res)=>{
 
 
 app.patch('/:orderId(\\d+)', async (req,res)=>{
-  const id = Number(req.params.orderId);
-  const status = (req.body.status || '').toUpperCase();
-  const allowed = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED'];
-  if (!allowed.includes(status)) return res.status(400).json({error:'bad status'});
+  try {
+    const id = Number(req.params.orderId);
+    console.log('PATCH delivery request:', { orderId: id, body: req.body });
+    
+    const status = (req.body?.status || '').toUpperCase();
+    const allowed = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED'];
+    
+    if (!status) {
+      console.log('No status provided in request body');
+      return res.status(400).json({error:'status required'});
+    }
+    
+    if (!allowed.includes(status)) {
+      console.log('Invalid status:', status, 'allowed:', allowed);
+      return res.status(400).json({error:'bad status', received: status, allowed});
+    }
 
   // Try update first
   const upd = await pool.query(
@@ -74,10 +86,15 @@ app.patch('/:orderId(\\d+)', async (req,res)=>{
   // publish update
   if (channel){
     const evt = { type:'delivery.updated', orderId:id, status };
-    channel.publish('events', 'topic', Buffer.from(JSON.stringify(evt)), { persistent: true });
+    channel.publish('events', 'delivery.updated', Buffer.from(JSON.stringify(evt)), { persistent: true });
   }
 
+  console.log('Delivery status updated successfully:', row);
   res.json(row);
+  } catch (error) {
+    console.error('Delivery update error:', error);
+    res.status(500).json({error: 'Internal server error', details: error.message});
+  }
 });
 
 
