@@ -1,6 +1,7 @@
 # Email Service Configuration Guide
 
 Your online medicine delivery platform includes email functionality for:
+
 - Welcome emails for new users
 - Order confirmation emails
 - Admin notifications
@@ -10,6 +11,7 @@ Your online medicine delivery platform includes email functionality for:
 The email service is configured in the `auth` service using Nodemailer with Gmail:
 
 ### Environment Variables Required:
+
 ```env
 EMAIL_USER=your-gmail@gmail.com
 EMAIL_APP_PASSWORD=your-app-specific-password
@@ -21,12 +23,14 @@ EMAIL_APP_PASSWORD=your-app-specific-password
 
 1. **Enable 2-Factor Authentication** on your Gmail account
 2. **Generate App Password**:
+
    - Go to Google Account settings
    - Security → 2-Step Verification
    - App passwords → Select "Mail" → Generate
    - Use this 16-character password as `EMAIL_APP_PASSWORD`
 
 3. **Update Kubernetes Secret**:
+
 ```bash
 kubectl create secret generic email-config -n medicine-delivery \
   --from-literal=EMAIL_USER=your-gmail@gmail.com \
@@ -34,18 +38,19 @@ kubectl create secret generic email-config -n medicine-delivery \
 ```
 
 4. **Update Deployment** (if needed):
+
 ```yaml
 env:
-- name: EMAIL_USER
-  valueFrom:
-    secretKeyRef:
-      name: email-config
-      key: EMAIL_USER
-- name: EMAIL_APP_PASSWORD
-  valueFrom:
-    secretKeyRef:
-      name: email-config
-      key: EMAIL_APP_PASSWORD
+  - name: EMAIL_USER
+    valueFrom:
+      secretKeyRef:
+        name: email-config
+        key: EMAIL_USER
+  - name: EMAIL_APP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: email-config
+        key: EMAIL_APP_PASSWORD
 ```
 
 ## Alternative Email Providers
@@ -59,15 +64,16 @@ env:
 ```javascript
 // Replace Gmail configuration with:
 const emailTransporter = nodemailer.createTransporter({
-  service: 'SendGrid',
+  service: "SendGrid",
   auth: {
-    user: 'apikey',
-    pass: process.env.SENDGRID_API_KEY
-  }
+    user: "apikey",
+    pass: process.env.SENDGRID_API_KEY,
+  },
 });
 ```
 
 4. **Environment Variables**:
+
 ```env
 SENDGRID_API_KEY=your-sendgrid-api-key
 EMAIL_USER=your-verified-sender@yourdomain.com
@@ -81,11 +87,11 @@ EMAIL_USER=your-verified-sender@yourdomain.com
 ```javascript
 const emailTransporter = nodemailer.createTransporter({
   SES: new AWS.SES({
-    apiVersion: '2010-12-01',
-    region: 'us-east-1',
+    apiVersion: "2010-12-01",
+    region: "us-east-1",
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-  })
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  }),
 });
 ```
 
@@ -93,31 +99,35 @@ const emailTransporter = nodemailer.createTransporter({
 
 ```javascript
 const emailTransporter = nodemailer.createTransporter({
-  service: 'hotmail',
+  service: "hotmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
+    pass: process.env.EMAIL_PASSWORD,
+  },
 });
 ```
 
 ## Testing Email Functionality
 
 ### 1. Check Current Configuration:
+
 ```bash
 # Check if environment variables are set
 kubectl exec -n medicine-delivery deployment/auth -- env | grep EMAIL
 ```
 
 ### 2. Test Order Email:
+
 1. Place a test order
 2. Check logs for email sending:
+
 ```bash
 kubectl logs -n medicine-delivery deployment/auth | grep -i email
 kubectl logs -n medicine-delivery deployment/notification | grep -i email
 ```
 
 ### 3. Test Welcome Email:
+
 1. Register a new user
 2. Check email delivery
 
@@ -126,14 +136,17 @@ kubectl logs -n medicine-delivery deployment/notification | grep -i email
 ### Common Issues:
 
 1. **Gmail "Less secure app access" error**:
+
    - Use App Password instead of regular password
    - Ensure 2FA is enabled
 
 2. **Authentication failed**:
+
    - Verify EMAIL_USER and EMAIL_APP_PASSWORD are correct
    - Check if App Password is generated correctly
 
 3. **Rate limiting**:
+
    - Gmail has sending limits (500 emails/day for free accounts)
    - Consider upgrading to business email service
 
@@ -173,12 +186,14 @@ curl -X POST http://your-domain/api/auth/send-email \
 ## Current Email Templates
 
 ### Welcome Email Features:
+
 - Professional HTML template
 - Platform introduction
 - Direct link to platform
 - Contact information
 
 ### Order Confirmation Features:
+
 - Order details with itemized list
 - Total amount and delivery address
 - Order tracking information

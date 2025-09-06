@@ -7,6 +7,8 @@ const STATUSES = ['PENDING','DISPATCHED','IN_TRANSIT','DELIVERED','FAILED']
 export default function Orders({ token, user }){
   const nav = useNavigate()
   const [orders, setOrders] = useState([])
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
@@ -35,11 +37,38 @@ export default function Orders({ token, user }){
       const endpoint = isAdmin ? '/orders/all' : '/orders'
       const data = await api(endpoint, 'GET', null, token)
       setOrders(data)
+      
+      // Load notifications
+      await loadNotifications()
     } catch (err) {
       setError('Failed to load orders. Please try again.')
       console.error('Orders error:', err)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  async function loadNotifications(){
+    try {
+      let endpoint = '/notify/notifications'
+      if (!isAdmin && user) {
+        // For regular users, get their specific notifications
+        endpoint += `?user_id=${user.sub || user.id}`
+      }
+      
+      const notificationsData = await api(endpoint, 'GET', undefined, token)
+      setNotifications(notificationsData)
+      
+      // Get unread count
+      let countEndpoint = '/notify/notifications/unread/count'
+      if (!isAdmin && user) {
+        countEndpoint += `?user_id=${user.sub || user.id}`
+      }
+      
+      const countData = await api(countEndpoint, 'GET', undefined, token)
+      setUnreadCount(countData.count || 0)
+    } catch (error) {
+      console.error('Failed to load notifications:', error)
     }
   }
 
@@ -53,6 +82,16 @@ export default function Orders({ token, user }){
     } catch(err) {
       setMsg(`Failed to update delivery: ${err.message}`)
       setMsgType('error')
+    }
+  }
+
+  async function markNotificationRead(notificationId) {
+    try {
+      await api(`/notify/notifications/${notificationId}/read`, 'PATCH', undefined, token)
+      setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, read: true} : n))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
     }
   }
 
@@ -224,6 +263,59 @@ export default function Orders({ token, user }){
               </svg>
             )}
             {msg}
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Section */}
+      {notifications.length > 0 && (
+        <div className="mb-8 bg-white rounded-xl border p-6 shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {isAdmin ? 'Recent Notifications' : 'Your Notifications'}
+            </h2>
+            {unreadCount > 0 && (
+              <div className="bg-red-500 text-white px-3 py-1 rounded-full text-sm">
+                {unreadCount} new notification{unreadCount !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {notifications.slice(0, 5).map(notification => (
+              <div 
+                key={notification.id} 
+                className={`p-3 rounded border cursor-pointer transition-colors ${
+                  notification.read 
+                    ? 'bg-gray-50 border-gray-200' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}
+                onClick={() => !notification.read && markNotificationRead(notification.id)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${notification.read ? 'text-gray-700' : 'text-blue-700'}`}>
+                        {notification.title}
+                      </span>
+                      {!notification.read && (
+                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notification.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 text-xs rounded ${
+                    notification.type === 'order' 
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-orange-100 text-orange-700'
+                  }`}>
+                    {notification.type}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

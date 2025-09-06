@@ -9,12 +9,18 @@ export default function Navbar({ token, user, onLogout, cartCount }){
 
   const isActivePath = (path) => location.pathname === path
 
-  // Load notification count for admin users
+  // Load notification count for users
   useEffect(() => {
     async function loadNotificationCount() {
-      if (token && user?.role === 'ADMIN') {
+      if (token && user) {
         try {
-          const countData = await api('/notify/notifications/unread/count', 'GET', undefined, token)
+          let endpoint = '/notify/notifications/unread/count'
+          if (user.role !== 'ADMIN') {
+            // For regular users, get their specific notifications
+            endpoint += `?user_id=${user.sub || user.id}`
+          }
+          
+          const countData = await api(endpoint, 'GET', undefined, token)
           setUnreadNotifications(countData.count || 0)
         } catch (error) {
           console.error('Failed to load notification count:', error)
@@ -108,10 +114,10 @@ export default function Navbar({ token, user, onLogout, cartCount }){
 
           {/* Cart & User Actions */}
           <div className="flex items-center space-x-4">
-            {/* Notification Bell for Admin */}
-            {token && user?.role === 'ADMIN' && (
+            {/* Notification Bell for All Users */}
+            {token && user && (
               <Link 
-                to="/admin" 
+                to={user.role === 'ADMIN' ? '/admin' : '/orders'} 
                 className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
                 title="Notifications"
               >
@@ -247,9 +253,9 @@ export default function Navbar({ token, user, onLogout, cartCount }){
               <div className="border-t pt-4 mt-4">
                 <div className="px-3 py-2 text-sm text-gray-500">
                   Signed in as {user?.email}
-                  {user?.role === 'ADMIN' && unreadNotifications > 0 && (
+                  {unreadNotifications > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                      {unreadNotifications} new notifications
+                      {unreadNotifications} new notification{unreadNotifications !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>

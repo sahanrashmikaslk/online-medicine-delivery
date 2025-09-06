@@ -25,6 +25,7 @@ export default function AdminDashboard({ token }){
   
   async function loadNotifications(){
     try {
+      // For admin, get notifications without user_id (admin notifications)
       const r = await api('/notify/notifications', 'GET', undefined, token)
       setNotifications(r)
       

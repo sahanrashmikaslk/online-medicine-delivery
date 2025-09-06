@@ -46,8 +46,14 @@ async function connectMQ(){
       if (evt.type === 'order.created') {
         // Create notification for admin
         await pool.query(
+          'INSERT INTO notifications (type, title, message, order_id, user_id) VALUES ($1, $2, $3, $4, NULL)',
+          ['order', 'New Order Received', `Order #${evt.orderId} placed by user ${evt.userId} for Rs. ${evt.total}`, evt.orderId]
+        );
+        
+        // Create notification for customer
+        await pool.query(
           'INSERT INTO notifications (type, title, message, order_id, user_id) VALUES ($1, $2, $3, $4, $5)',
-          ['order', 'New Order Received', `Order #${evt.orderId} placed by user ${evt.userId} for $${evt.total}`, evt.orderId, evt.userId]
+          ['order', 'Order Placed Successfully', `Your order #${evt.orderId} has been placed and is being processed`, evt.orderId, evt.userId]
         );
         
         // Send email to auth service for customer confirmation
@@ -101,16 +107,25 @@ async function sendNotificationEmail(emailData) {
 
 app.get('/health', (req,res)=>res.json({ok:true, service:'notification'}));
 
-// Get notifications (for admin dashboard)
+// Get notifications (for admin dashboard or user notifications)
 app.get('/notifications', async (req, res) => {
   try {
-    const { type, limit = 50 } = req.query;
-    let query = 'SELECT * FROM notifications';
+    const { type, limit = 50, user_id } = req.query;
+    let query = 'SELECT * FROM notifications WHERE 1=1';
     let params = [];
     
     if (type) {
-      query += ' WHERE type = $1';
+      query += ' AND type = $' + (params.length + 1);
       params.push(type);
+    }
+    
+    if (user_id) {
+      // For specific user notifications
+      query += ' AND user_id = $' + (params.length + 1);
+      params.push(Number(user_id));
+    } else {
+      // For admin notifications (user_id is NULL)
+      query += ' AND user_id IS NULL';
     }
     
     query += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1);
@@ -124,6 +139,28 @@ app.get('/notifications', async (req, res) => {
   }
 });
 
+// Get unread count (for admin or specific user)
+app.get('/notifications/unread/count', async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    let query = 'SELECT COUNT(*) FROM notifications WHERE read = FALSE';
+    let params = [];
+    
+    if (user_id) {
+      query += ' AND user_id = $1';
+      params.push(Number(user_id));
+    } else {
+      query += ' AND user_id IS NULL';
+    }
+    
+    const result = await pool.query(query, params);
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (error) {
+    console.error('Get unread count error:', error);
+    res.status(500).json({ error: 'Failed to get unread count' });
+  }
+});
+
 // Mark notification as read
 app.patch('/notifications/:id/read', async (req, res) => {
   try {
@@ -133,17 +170,6 @@ app.patch('/notifications/:id/read', async (req, res) => {
   } catch (error) {
     console.error('Mark notification read error:', error);
     res.status(500).json({ error: 'Failed to mark notification as read' });
-  }
-});
-
-// Get unread count
-app.get('/notifications/unread/count', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT COUNT(*) FROM notifications WHERE read = FALSE');
-    res.json({ count: parseInt(result.rows[0].count) });
-  } catch (error) {
-    console.error('Get unread count error:', error);
-    res.status(500).json({ error: 'Failed to get unread count' });
   }
 });
 

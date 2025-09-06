@@ -1,17 +1,43 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 
 export default function Cart({ cart, setCart, token }){
   const nav = useNavigate()
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const total = cart.reduce((s,i)=> s + Number(i.price) * i.qty, 0)
 
   const checkout = async ()=>{
     if (!token) return nav('/login')
-    const items = cart.map(i=>({ medicine_id: i.id, quantity: i.qty }))
-    await api('/orders','POST',{ items, address: '221B Baker Street, London'}, token)
-    setCart([])
-    nav('/orders')
+    if (!deliveryAddress.trim()) {
+      alert('Please enter a delivery address')
+      return
+    }
+    
+    setIsCheckingOut(true)
+    try {
+      const items = cart.map(i=>({ medicine_id: i.id, quantity: i.qty }))
+      await api('/orders','POST',{ items, address: deliveryAddress.trim() }, token)
+      setCart([])
+      setDeliveryAddress('')
+      
+      // Show success message
+      setShowSuccessMessage(true)
+      
+      // Hide success message after 3 seconds and navigate
+      setTimeout(() => {
+        setShowSuccessMessage(false)
+        nav('/orders')
+      }, 3000)
+      
+    } catch (error) {
+      alert('Failed to place order. Please try again.')
+      console.error('Checkout error:', error)
+    } finally {
+      setIsCheckingOut(false)
+    }
   }
 
   const updateQuantity = (index, newQty) => {
@@ -55,6 +81,26 @@ export default function Cart({ cart, setCart, token }){
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Success Message */}
+      {showSuccessMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Order Placed Successfully! 🎉</h3>
+            <p className="text-gray-600 mb-4">
+              Thank you for your order. You will receive a confirmation email shortly.
+            </p>
+            <div className="animate-pulse text-sm text-gray-500">
+              Redirecting to your orders...
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Shopping Cart</h1>
@@ -176,17 +222,49 @@ export default function Cart({ cart, setCart, token }){
               </div>
             </div>
 
+            {/* Delivery Address */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Delivery Address *
+              </label>
+              <textarea
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="Enter your complete delivery address..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                rows="3"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Please include your full address with area, city, and postal code
+              </p>
+            </div>
+
             {/* Action Buttons */}
             <div className="space-y-3">
               <button
                 onClick={checkout}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                disabled={isCheckingOut || !deliveryAddress.trim()}
+                className={`w-full py-3 rounded-lg transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                  isCheckingOut || !deliveryAddress.trim()
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700'
+                }`}
               >
                 <div className="flex items-center justify-center">
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  Proceed to Checkout
+                  {isCheckingOut ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Processing Order...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Place Order
+                    </>
+                  )}
                 </div>
               </button>
 
