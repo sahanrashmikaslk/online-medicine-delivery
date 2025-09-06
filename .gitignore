@@ -24,6 +24,8 @@ service/auth/
         <empty_dir_placeholder>
 
 
-.env # Ignore environment variable files
+.env 
+# Ignore environment variable files
 
-.prev # Ignore previous files
+.prev 
+# Ignore previous files
