@@ -68,7 +68,7 @@ async function connectMQ(){
         
       } else if (evt.type === 'delivery.updated') {
         // Create notification for customer about delivery status
-        const customer = await pool.query('SELECT email, name FROM users u JOIN orders o ON u.id = o.user_id WHERE o.id = $1', [evt.orderId]);
+        const customer = await pool.query('SELECT u.id, u.email, u.name FROM users u JOIN orders o ON u.id = o.user_id WHERE o.id = $1', [evt.orderId]);
         if (customer.rows[0]) {
           await pool.query(
             'INSERT INTO notifications (type, title, message, order_id, user_id) VALUES ($1, $2, $3, $4, $5)',
