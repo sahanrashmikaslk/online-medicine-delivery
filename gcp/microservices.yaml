@@ -118,6 +118,11 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: NODE_ENV
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt-secret
             - name: DATABASE_URL
               value: "postgresql://postgres:mypassword@postgres-cluster-ip:5432/medicine_delivery"
             - name: DATABASE_PASSWORD
