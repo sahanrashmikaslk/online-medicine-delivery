@@ -1,32 +1,52 @@
 
-# Ignore node_modules directory
+# Dependencies
 node_modules/
-    .env
-# Ignore build output
+
+# Build output
 build/
-    .env
-    
+dist/
 
-gateway/
-    .env
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-service/auth/
-    .env
-    index.html
-    static/
-        css/
-        js/
-        media/
-        images/
-        fonts/
-        icons/
-        logos/
-        <empty_dir_placeholder>
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-.env 
-# Ignore environment variable files
+# Coverage directory used by tools like istanbul
+coverage/
 
-.prev 
+# Temporary folders
+.tmp/
+temp/
 
+# Previous/backup files
+.prev/
 
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
