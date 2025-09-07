@@ -87,7 +87,7 @@ app.patch('/:orderId(\\d+)', async (req,res)=>{
 
   // Try update first
   const upd = await pool.query(
-    'UPDATE deliveries SET status=$1, updated_at=NOW() WHERE order_id=$2 RETURNING *',
+    'UPDATE deliveries SET status=$1 WHERE order_id=$2 RETURNING *',
     [status, id]
   );
   let row = upd.rows[0];
